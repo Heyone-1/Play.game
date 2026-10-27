@@ -1,0 +1,3213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tom & Jerry — Shoot Jerry</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; overflow: hidden;
+    font-family: "Trebuchet MS", "Arial", sans-serif;
+    background: #0a0a16;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6px;
+    gap: 6px;
+    background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a16 70%);
+  }
+
+  /* HEADER & BUTTONS */
+  h1 {
+    margin: 0;
+    font-size: 15px;
+    text-align: center;
+    flex-shrink: 0;
+    font-weight: 900;
+    letter-spacing: 1px;
+    background: linear-gradient(to bottom, #ffd166 0%, #ff6b35 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    padding: 0 40px;
+  }
+  
+  #backBtn {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: none;
+  }
+  #backBtn:active { background: rgba(255,255,255,0.3); }
+
+  #camBtn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #camBtn:active { background: rgba(255,255,255,0.3); }
+
+  /* TOP BAR */
+  #scoreBar {
+    flex-shrink: 0;
+    background: linear-gradient(to bottom, #1e1e34, #14142a);
+    border: 2px solid #2a2a44;
+    border-radius: 12px;
+    padding: 6px 10px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 20;
+  }
+  .scoreItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex: 1;
+  }
+  .scoreLabel {
+    font-size: 9px;
+    color: #8a8aa0;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .scoreValue {
+    font-family: "Courier New", monospace;
+    font-weight: 900;
+    font-size: 16px;
+    color: #fff;
+    text-shadow: 0 1px 3px #000;
+    line-height: 1;
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .scoreValue.gold  { color: #ffd166; text-shadow: 0 0 6px rgba(255,209,102,0.7); }
+  .scoreValue.blue  { color: #6bc5ff; text-shadow: 0 0 6px rgba(107,197,255,0.7); }
+  .scoreValue.green { color: #6bd96b; text-shadow: 0 0 6px rgba(107,217,107,0.7); }
+  .scoreValue.yellow { color: #ffe566; text-shadow: 0 0 6px rgba(255,229,102,0.7); }
+  
+  /* 2x COIN EVENT FLASH */
+  .scoreValue.active2x { 
+    color: #ffd166 !important; 
+    text-shadow: 0 0 10px #ff8a4a, 0 0 20px #ff6b35 !important; 
+    animation: pulseCoin 0.4s infinite alternate; 
+  }
+  @keyframes pulseCoin { 
+    from { transform: scale(1); } 
+    to { transform: scale(1.15); } 
+  }
+
+  #healthPanel {
+    flex-shrink: 0;
+    background: linear-gradient(to bottom, #1e1e34, #14142a);
+    border: 2px solid #2a2a44;
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 20;
+  }
+  .healthRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .healthLabel { width: 64px; flex-shrink: 0; }
+  .healthLabel.jerry { color: #ffd166; }
+  .healthLabel.tom   { color: #8fb8e0; }
+
+  .bar {
+    flex: 1;
+    height: 18px;
+    background: #0a0a16;
+    border-radius: 9px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #2a2a44;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+  }
+  .barFill {
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
+    transition: width 0.25s ease-out;
+  }
+  #jerryFill { background: linear-gradient(to bottom, #ffd166 0%, #d9a066 60%, #b07d3a 100%); }
+  #tomFill { background: linear-gradient(to bottom, #a8cce8 0%, #6b9dc9 60%, #4a7ba8 100%); }
+  
+  .healthValue {
+    width: 46px;
+    text-align: right;
+    flex-shrink: 0;
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    font-size: 13px;
+  }
+
+  #boardWrap {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  #board {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 500px;
+    max-height: 900px;
+    border: 3px solid #2a2a44;
+    border-radius: 14px;
+    overflow: hidden;
+    touch-action: none;
+    box-shadow: 0 0 0 1px #000, 0 8px 30px rgba(0,0,0,0.8);
+    background: #1a1a2e;
+    transform: translate(0, 0) scale(1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  #road {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, #2e2e50 0%, #232338 100%);
+  }
+  #road::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right,
+        transparent 32.8%, rgba(255,209,102,0.6) 33.2%,
+        rgba(255,209,102,0.6) 33.5%, transparent 33.5%,
+        transparent 66.2%, rgba(255,209,102,0.6) 66.6%,
+        rgba(255,209,102,0.6) 66.9%, transparent 66.9%);
+  }
+
+  #stripes {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 40px,
+      rgba(255,255,255,0.06) 40px,
+      rgba(255,255,255,0.06) 42px,
+      transparent 42px,
+      transparent 80px
+    );
+    animation: roadMove 0.7s linear infinite;
+  }
+  @keyframes roadMove {
+    from { background-position-y: 0; }
+    to   { background-position-y: 80px; }
+  }
+
+  /* STAGE PROGRESS BOARD */
+  #stageBoard {
+    position: absolute;
+    top: 10px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #6bc5ff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    z-index: 40;
+    min-width: 140px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    pointer-events: none;
+    transition: all 0.3s;
+  }
+  .stage-title {
+    font-size: 10px;
+    color: #6bc5ff;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .stage-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #444;
+  }
+  .stage-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(to right, #6bc5ff, #4a90d9);
+    transition: width 0.2s;
+  }
+
+  /* MISSION BOARD */
+  #missionBoard {
+    position: absolute;
+    top: 50px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ffd166;
+    border-radius: 8px;
+    padding: 8px 10px;
+    z-index: 40;
+    min-width: 130px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    pointer-events: none;
+    transition: all 0.3s;
+  }
+  #missionBoard.complete {
+    border-color: #6bd96b;
+    background: rgba(20, 60, 20, 0.85);
+    box-shadow: 0 0 15px rgba(107, 217, 107, 0.6);
+  }
+  .mission-title {
+    font-size: 10px;
+    color: #ffd166;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    letter-spacing: 1px;
+  }
+  .mission-text {
+    font-size: 12px;
+    color: #fff;
+    font-weight: bold;
+  }
+  .mission-progress {
+    font-size: 14px;
+    color: #ffd166;
+    font-weight: 900;
+    margin-top: 4px;
+    font-family: monospace;
+  }
+  #missionBoard.complete .mission-title { color: #6bd96b; }
+  #missionBoard.complete .mission-progress { color: #6bd96b; }
+
+  /* JERRY */
+  #jerry {
+    position: absolute;
+    width: 60px;
+    height: 70px;
+    transform: translateX(-50%);
+    z-index: 6;
+  }
+  #jerry .jerry-bounce {
+    position: absolute;
+    inset: 0;
+  }
+  #jerry .body {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 46px;
+    height: 40px;
+    background: radial-gradient(ellipse at 40% 30%, #e6b482 0%, #d9a066 60%, #b07d3a 100%);
+    border: 2.5px solid #4a2a10;
+    border-radius: 50% 50% 45% 45%;
+  }
+  #jerry .tail {
+    position: absolute;
+    bottom: 10px;
+    right: -14px;
+    width: 28px;
+    height: 20px;
+    border: 2.5px solid #4a2a10;
+    border-left: none;
+    border-bottom: none;
+    border-radius: 0 40px 0 0;
+    transform: rotate(20deg);
+    transform-origin: bottom left;
+  }
+  #jerry .headPivot {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 50px;
+    height: 46px;
+    margin-left: -25px;
+    transform-origin: 50% 85%;
+    transform: rotate(0deg);
+    transition: transform 0.1s linear;
+    z-index: 3;
+  }
+  #jerry .head {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 46px;
+    height: 42px;
+    background: radial-gradient(ellipse at 40% 30%, #e6b482 0%, #d9a066 60%, #b07d3a 100%);
+    border: 2.5px solid #4a2a10;
+    border-radius: 50%;
+  }
+  #jerry .ear {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: radial-gradient(circle at 40% 30%, #e6b482 0%, #d9a066 70%, #b07d3a 100%);
+    border: 2.5px solid #4a2a10;
+    border-radius: 50%;
+    z-index: 2;
+    top: 0px;
+  }
+  #jerry .ear.l { left: -2px; }
+  #jerry .ear.r { right: -2px; }
+  #jerry .ear::after {
+    content: "";
+    position: absolute;
+    top: 5px; left: 5px;
+    width: 10px; height: 10px;
+    background: #c27a8a;
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+  #jerry .eye {
+    position: absolute;
+    top: 16px;
+    width: 13px;
+    height: 15px;
+    background: radial-gradient(ellipse at 40% 30%, #ffffff, #e8e8e8);
+    border: 2px solid #1a1a2e;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 3;
+  }
+  #jerry .eye.l { left: 6px; }
+  #jerry .eye.r { right: 6px; }
+  #jerry .pupil {
+    position: absolute;
+    width: 7px;
+    height: 8px;
+    background: radial-gradient(circle at 40% 30%, #4a4a4a, #000);
+    border-radius: 50%;
+    left: 50%;
+    bottom: 3px;
+    transform: translateX(-50%);
+    transition: bottom 0.15s ease-out;
+  }
+  #jerry .shine {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  #jerry .nose {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 6px;
+    background: radial-gradient(ellipse at 40% 30%, #ff9a9a, #d63a3a);
+    border: 1.5px solid #4a1010;
+    border-radius: 50%;
+    z-index: 4;
+  }
+  #jerry .whisker {
+    position: absolute;
+    top: 34px;
+    height: 1.5px;
+    background: #4a2a10;
+    border-radius: 2px;
+    z-index: 3;
+  }
+  #jerry .whisker.l1 { left: -2px; width: 14px; transform: rotate(-8deg); }
+  #jerry .whisker.l2 { left: -2px; width: 14px; transform: rotate(6deg); top: 38px; }
+  #jerry .whisker.r1 { right: -2px; width: 14px; transform: rotate(8deg); }
+  #jerry .whisker.r2 { right: -2px; width: 14px; transform: rotate(-6deg); top: 38px; }
+  #jerry .mouth {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 6px;
+    border-bottom: 1.5px solid #4a2a10;
+    border-radius: 0 0 50% 50%;
+    z-index: 4;
+    transition: all 0.15s;
+  }
+  #jerry .sweat {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    width: 6px;
+    height: 9px;
+    background: radial-gradient(ellipse at 40% 30%, #a8e0ff, #4a90d9);
+    border: 1.5px solid #1a4a7a;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  /* TOM (PLAYER) */
+  #tom {
+    position: absolute;
+    width: 90px;
+    height: 120px;
+    transform: translateX(-50%);
+    z-index: 5;
+  }
+  #tom .body {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 76px;
+    height: 68px;
+    background: var(--char-color-1, #a8cce8);
+    background: radial-gradient(ellipse at 40% 30%, var(--char-color-1, #a8cce8) 0%, var(--char-color-2, #8fb8e0) 55%, var(--char-color-3, #5a8cb8) 100%);
+    border: 3px solid #1a1a2e;
+    border-radius: 50% 50% 42% 42%;
+  }
+  #tom .body::after {
+    content: "";
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 42px;
+    height: 38px;
+    background: radial-gradient(ellipse at center, #e8f2ff 0%, #d0e2f5 100%);
+    border-radius: 50%;
+    opacity: 0.85;
+  }
+  #tom .head {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 76px;
+    height: 66px;
+    background: var(--char-color-1, #a8cce8);
+    background: radial-gradient(ellipse at 40% 30%, var(--char-color-1, #a8cce8) 0%, var(--char-color-2, #8fb8e0) 55%, var(--char-color-3, #5a8cb8) 100%);
+    border: 3px solid #1a1a2e;
+    border-radius: 50%;
+  }
+  #tom .ear {
+    position: absolute;
+    width: 30px;
+    height: 34px;
+    background: var(--char-color-1, #a8cce8);
+    background: radial-gradient(ellipse at 40% 30%, var(--char-color-1, #a8cce8) 0%, var(--char-color-2, #8fb8e0) 60%, var(--char-color-3, #5a8cb8) 100%);
+    border: 3px solid #1a1a2e;
+    top: 12px;
+    border-radius: 50% 50% 20% 20%;
+    overflow: hidden;
+  }
+  #tom .ear.l { left: 0; transform: rotate(-15deg); }
+  #tom .ear.r { right: 0; transform: rotate(15deg); }
+  #tom .ear::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 16px;
+    background: radial-gradient(ellipse at center, #c27a8a 0%, #a05868 100%);
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  #tom .eye {
+    position: absolute;
+    top: 42px;
+    width: 20px;
+    height: 22px;
+    background: radial-gradient(ellipse at 40% 30%, #ffffff, #e8e8e8);
+    border: 2.5px solid #1a1a2e;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  #tom .eye.l { left: 14px; }
+  #tom .eye.r { right: 14px; }
+  #tom .eye::after {
+    content: "";
+    position: absolute;
+    width: 9px;
+    height: 11px;
+    background: radial-gradient(ellipse at 40% 30%, #4a4a4a 0%, #000 100%);
+    border-radius: 50%;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  #tom .eye::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 5px;
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  #tom .nose {
+    position: absolute;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 9px;
+    background: radial-gradient(ellipse at 40% 30%, #ff9a9a, #c93a3a);
+    border: 2px solid #4a1010;
+    border-radius: 50%;
+    z-index: 3;
+  }
+  #tom .mouth {
+    position: absolute;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 26px;
+    height: 10px;
+    border-bottom: 2.5px solid #1a1a2e;
+    border-radius: 0 0 50% 50%;
+  }
+  #tom .whisker {
+    position: absolute;
+    top: 72px;
+    height: 2px;
+    background: #1a1a2e;
+    border-radius: 2px;
+  }
+  #tom .whisker.l1 { left: 0px; width: 18px; transform: rotate(-10deg); }
+  #tom .whisker.l2 { left: 0px; width: 18px; transform: rotate(6deg); top: 78px; }
+  #tom .whisker.r1 { right: 0px; width: 18px; transform: rotate(10deg); }
+  #tom .whisker.r2 { right: 0px; width: 18px; transform: rotate(-6deg); top: 78px; }
+  
+  /* Tom's Arm & Guns */
+  #tom .armPivot {
+    position: absolute;
+    bottom: 65px;
+    left: 50%;
+    width: 0; height: 0;
+    transform-origin: 0 0;
+    transform: rotate(0deg);
+    transition: transform 0.1s ease-out;
+    z-index: 8;
+  }
+  #tom .armPivot .arm {
+    position: absolute;
+    left: -6px;
+    top: -38px;
+    width: 12px;
+    height: 38px;
+    background: linear-gradient(to right, var(--char-color-1, #a8cce8), var(--char-color-2, #8fb8e0));
+    border: 3px solid #1a1a2e;
+    border-radius: 6px;
+  }
+  
+  /* Default Gun */
+  #tom .armPivot .gun {
+    position: absolute;
+    left: -10px;
+    top: -62px;
+    width: 20px;
+    height: 30px;
+    background: linear-gradient(to bottom, #6a6a6a 0%, #3a3a3a 100%);
+    border: 3px solid #1a1a2e;
+    border-radius: 5px;
+  }
+  #tom .armPivot .gun::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #000;
+    border-radius: 50%;
+    border: 1px solid #000;
+  }
+  
+  /* Shotgun */
+  #tom .armPivot .gun.shotgun {
+    height: 18px;
+    top: -52px;
+    width: 26px;
+    background: linear-gradient(to bottom, #8b5a2b 0%, #5c3a1a 100%); /* Wood */
+    border-radius: 4px;
+  }
+  #tom .armPivot .gun.shotgun::after {
+    top: 1px;
+    width: 12px;
+    height: 12px;
+    background: #444;
+  }
+
+  /* Uzis (Dual) */
+  #tom .armPivot .gun.uzi {
+    left: -14px;
+    width: 14px;
+    height: 26px;
+    top: -58px;
+    background: linear-gradient(to bottom, #333 0%, #111 100%);
+  }
+  #tom .armPivot .gun.uzi2 {
+    left: 8px;
+    width: 14px;
+    height: 26px;
+    top: -58px;
+    background: linear-gradient(to bottom, #333 0%, #111 100%);
+  }
+  #tom .armPivot .gun.uzi2::after { display: none; }
+  
+  /* Rocket Launcher */
+  #tom .armPivot .gun.rocket {
+    width: 24px;
+    height: 40px;
+    top: -70px;
+    background: linear-gradient(to bottom, #4ea84e 0%, #2d6b2d 100%);
+    border-radius: 8px;
+  }
+  #tom .armPivot .gun.rocket::after {
+    top: 2px;
+    width: 14px;
+    height: 14px;
+    background: #222;
+  }
+  
+  #tom .tail {
+    position: absolute;
+    bottom: 20px;
+    right: -18px;
+    width: 32px;
+    height: 24px;
+    border: 3px solid #1a1a2e;
+    border-left: none;
+    border-bottom: none;
+    border-radius: 0 50px 0 0;
+    transform: rotate(15deg);
+  }
+
+  /* PICKUPS */
+  .pickup {
+    position: absolute;
+    z-index: 4;
+    transform: translateX(-50%);
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: floatSpin 1.5s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+  .pickup.cheese { color: #ffd93d; text-shadow: 0 0 16px #ffd93d, 0 0 32px #ff6b35; }
+  .pickup.gold-cheese { color: #ffd93d; text-shadow: 0 0 20px #fff, 0 0 40px #ffd93d, 0 0 60px #ff6b35; font-size: 40px; animation: floatSpin 0.8s ease-in-out infinite alternate, pulseGold 0.5s ease-in-out infinite; }
+  .pickup.slow { color: #6bc5ff; text-shadow: 0 0 16px #6bc5ff, 0 0 32px #4a90d9; }
+  .pickup.invincible { color: #ffd166; text-shadow: 0 0 20px #ffd166, 0 0 40px #ff6b35; }
+  .pickup.bonus { color: #6bd96b; text-shadow: 0 0 16px #6bd96b, 0 0 32px #2d6b2d; font-size: 22px; font-weight: 900; font-family: "Courier New", monospace; }
+  .pickup.coin { color: #ffe566; text-shadow: 0 0 15px #ffd166, 0 0 30px #ff8a4a; font-size: 26px; }
+  .pickup.chest-wood { color: #a0522d; text-shadow: 0 0 16px #a0522d, 0 0 32px #8b4513; }
+  .pickup.chest-gold { color: #ffd166; text-shadow: 0 0 20px #fff, 0 0 40px #ffd166, 0 0 60px #ff8a4a; font-size: 38px; animation: floatSpin 0.8s ease-in-out infinite alternate, pulseGold 0.5s ease-in-out infinite; }
+
+  @keyframes floatSpin {
+    from { transform: translateX(-50%) translateY(0) rotate(-8deg); }
+    to   { transform: translateX(-50%) translateY(-6px) rotate(8deg); }
+  }
+  @keyframes pulseGold {
+    0%, 100% { filter: drop-shadow(0 0 12px currentColor) brightness(1); }
+    50%      { filter: drop-shadow(0 0 24px currentColor) brightness(1.4); }
+  }
+
+  #slowTint { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at center, rgba(107,197,255,0.08) 0%, rgba(74,144,217,0.25) 100%); pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.3s; }
+  #slowTint.on { opacity: 1; }
+  #invTint { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at center, rgba(255,209,102,0.1) 0%, rgba(255,107,53,0.3) 100%); pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.3s; }
+  #invTint.on { opacity: 1; }
+
+  #statusBadges { position: absolute; top: 10px; left: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 40; }
+  .badge { background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 3px 8px; font-size: 11px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .badge.slow { color: #6bc5ff; border-color: #4a90d9; text-shadow: 0 0 6px #4a90d9; }
+  .badge.inv  { color: #ffd166; border-color: #ff6b35; text-shadow: 0 0 6px #ff6b35; }
+  .badge.combo{ color: #ff4d4d; border-color: #ff0000; text-shadow: 0 0 6px #ff0000; }
+  .badge.coin2x{ color: #ffe566; border-color: #ffd166; text-shadow: 0 0 8px #ff8a4a; animation: pulseCoin 0.4s infinite alternate;}
+  .badge.tool { color: #fff; border-color: #fff; }
+
+  /* PARTICLES */
+  .particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    z-index: 45;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .muzzle { position: absolute; width: 32px; height: 32px; background: radial-gradient(circle, #ffffff 0%, #ffd93d 30%, #ff6b35 55%, transparent 75%); border-radius: 50%; z-index: 9; pointer-events: none; animation: muzzlePop 0.15s ease-out forwards; transform: translate(-50%, -50%); }
+  @keyframes muzzlePop {
+    0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+  }
+
+  .smoke { position: absolute; width: 20px; height: 20px; background: rgba(200,200,200,0.6); border-radius: 50%; z-index: 7; pointer-events: none; transform: translate(-50%, -50%); }
+  
+  .bullet { position: absolute; width: 12px; height: 12px; background: radial-gradient(circle at 40% 30%, #fff 0%, #ffd93d 40%, #ff6b35 100%); border: 2px solid #8b2f10; border-radius: 50%; z-index: 8; box-shadow: 0 0 12px #ffd93d, 0 0 24px rgba(255,107,53,0.6); transform: translate(-50%, -50%); }
+  
+  .bullet.rocket {
+    width: 16px;
+    height: 30px;
+    background: linear-gradient(to right, #555, #888, #555);
+    border: 2px solid #333;
+    border-radius: 8px 8px 4px 4px;
+    box-shadow: 0 0 15px #ff6b35, 0 0 30px #ffd93d;
+    animation: pulseGold 0.2s infinite alternate;
+  }
+
+  .obstacle { position: absolute; width: 60px; height: 46px; border-radius: 10px; border: 3px solid #1a1a2e; z-index: 4; display: flex; align-items: center; justify-content: center; font-size: 24px; transform: translateX(-50%); box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.15); }
+  .obstacle.trap { background: linear-gradient(to bottom, #8a8a8a 0%, #5a5a5a 100%); }
+  .obstacle.trash { background: linear-gradient(to bottom, #4ea84e 0%, #2d6b2d 100%); }
+  .obstacle.barrier { background: linear-gradient(to bottom, #e74c3c 0%, #a02d20 100%); }
+
+  .popup { position: absolute; font-size: 24px; font-weight: 900; z-index: 50; pointer-events: none; animation: popUp 0.9s ease-out forwards; transform: translateX(-50%); }
+  .popup.red { color: #ff4d4d; text-shadow: 0 0 8px #ff0000, 0 2px 4px #000; }
+  .popup.blue { color: #6bc5ff; text-shadow: 0 0 8px #4a90d9, 0 2px 4px #000; }
+  .popup.gold { color: #ffd166; text-shadow: 0 0 10px #ffd166, 0 0 20px rgba(255,209,102,0.7), 0 2px 4px #000; }
+  .popup.green { color: #6bd96b; text-shadow: 0 0 10px #6bd96b, 0 0 20px rgba(107,217,107,0.7), 0 2px 4px #000; }
+  @keyframes popUp {
+    0%   { opacity: 0; transform: translateX(-50%) scale(0.5); top: var(--pop-y); }
+    20%  { opacity: 1; transform: translateX(-50%) scale(1.3); top: var(--pop-y); }
+    40%  { transform: translateX(-50%) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) scale(1); top: calc(var(--pop-y) - 70px); }
+  }
+
+  #comboFlash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); font-size: 42px; font-weight: 900; color: #ffd166; text-shadow: 0 0 20px #ff6b35, 0 0 40px #ff6b35, 0 4px 8px #000; z-index: 60; pointer-events: none; opacity: 0; font-family: "Trebuchet MS", sans-serif; white-space: nowrap; text-align: center;}
+  #comboFlash.show { animation: comboBoom 0.8s ease-out; }
+  @keyframes comboBoom {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.3) rotate(2deg); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  }
+
+  .scoreSummary { background: rgba(255,209,102,0.08); border: 2px solid rgba(255,209,102,0.3); border-radius: 14px; padding: 12px 22px; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+  .scoreSummaryRow { display: flex; justify-content: space-between; font-size: 14px; gap: 20px; }
+  .scoreSummaryRow .lbl { color: #a8b0c8; }
+  .scoreSummaryRow .val { font-family: "Courier New", monospace; font-weight: 900; color: #fff; }
+  .scoreSummaryRow.best .val { color: #ffd166; text-shadow: 0 0 8px rgba(255,209,102,0.6); }
+  .scoreSummaryRow.big  { font-size: 20px; margin-top: 4px; }
+  .scoreSummaryRow.big .val { color: #ffd166; text-shadow: 0 0 10px rgba(255,209,102,0.7); }
+  .scoreSummaryRow.coin .val { color: #ffe566; text-shadow: 0 0 8px rgba(255,229,102,0.6); }
+
+  .newBest { color: #ffd166; font-size: 12px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 12px #ff6b35; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.7; transform: scale(1.08); }
+  }
+
+  .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at center, rgba(30,30,52,0.96) 0%, rgba(10,10,22,0.98) 100%); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; z-index: 100; text-align: center; overflow-y: auto;}
+  .hidden { display: none !important; }
+
+  .overlay h2 { font-size: 26px; margin: 5px 0 12px; font-weight: 900; background: linear-gradient(to bottom, #ffd166 0%, #ff6b35 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .overlay p { font-size: 14px; margin: 5px 0; color: #c8d0e0; line-height: 1.6; }
+
+  .btn { background: linear-gradient(to bottom, #ff8a4a 0%, #ff6b35 50%, #d94a1a 100%); color: #fff; border: 2px solid #8b2f10; border-radius: 28px; padding: 14px 38px; font-size: 17px; font-weight: 900; cursor: pointer; margin: 14px 4px 4px; font-family: inherit; touch-action: manipulation; box-shadow: 0 6px 0 #8b2f10, 0 8px 16px rgba(0,0,0,0.5); }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #8b2f10, 0 4px 8px rgba(0,0,0,0.5); }
+  .btn.gray { background: linear-gradient(to bottom, #6a6a7a 0%, #4a4a5a 50%, #2a2a3a 100%); border-color: #1a1a2a; box-shadow: 0 6px 0 #1a1a2a, 0 8px 16px rgba(0,0,0,0.5); }
+  .btn.green { background: linear-gradient(to bottom, #6bd96b 0%, #3a8c3a 50%, #2d6b2d 100%); border-color: #1a4a1a; box-shadow: 0 6px 0 #1a4a1a, 0 8px 16px rgba(0,0,0,0.5); }
+
+  .swipeHint { margin-top: 16px; font-size: 13px; color: #ffd166; line-height: 1.9; background: rgba(255,209,102,0.08); border: 1px solid rgba(255,209,102,0.2); border-radius: 12px; padding: 12px 18px; }
+  .swipeHint b { color: #fff; }
+
+  /* SHOP & TABS */
+  .shop-tabs { display: flex; gap: 4px; margin-bottom: 10px; width: 100%; max-width: 340px; overflow-x: auto; }
+  .tab-btn { flex: 1; background: #222; border: 2px solid #444; color: #888; padding: 6px 4px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.2s; font-family: inherit; white-space: nowrap; }
+  .tab-btn.active { background: #444; color: #fff; border-color: #ffd166; }
+  
+  .shop-content { display: none; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; padding-bottom: 20px;}
+  .shop-content.active { display: flex; }
+
+  .shop-item { background: rgba(255,255,255,0.1); border: 2px solid #444; border-radius: 12px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; text-align: left;}
+  .shop-item-info { display: flex; flex-direction: column; }
+  .shop-title { font-size: 14px; font-weight: bold; color: #fff; }
+  .shop-desc { font-size: 11px; color: #aaa; }
+  .shop-buy { background: #ffe566; color: #000; font-weight: 900; border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; box-shadow: 0 3px 0 #8b6a00;}
+  .shop-buy:active { transform: translateY(2px); box-shadow: none; }
+  .shop-buy:disabled { background: #555; color: #888; box-shadow: none; cursor: not-allowed; }
+  
+  .shop-item.equipped { border-color: #6bd96b; background: rgba(107, 217, 107, 0.1); }
+  .shop-item.equipped .shop-buy { background: #6bd96b; color: #000; box-shadow: 0 3px 0 #1a4a1a; }
+
+  /* ACHIEVEMENTS */
+  .ach-item { background: rgba(255,255,255,0.05); border: 2px solid #333; border-radius: 12px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; text-align: left; opacity: 0.6; }
+  .ach-item.unlocked { border-color: #ffd166; background: rgba(255, 209, 102, 0.05); opacity: 1; }
+  .ach-item.claimed { border-color: #6bd96b; background: rgba(107, 217, 107, 0.05); opacity: 0.8; }
+  .ach-info { display: flex; flex-direction: column; }
+  .ach-title { font-size: 13px; font-weight: bold; color: #fff; }
+  .ach-desc { font-size: 10px; color: #aaa; }
+  .ach-reward { font-size: 11px; color: #ffd166; margin-top: 2px; font-weight: bold; }
+  .ach-btn { background: #6bd96b; color: #000; font-weight: 900; border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 11px; box-shadow: 0 3px 0 #1a4a1a; }
+  .ach-btn:disabled { background: #555; color: #888; box-shadow: none; cursor: not-allowed; }
+  .ach-item.claimed .ach-btn { background: transparent; color: #6bd96b; box-shadow: none; }
+
+  #errorBox { position: fixed; bottom: 0; left: 0; right: 0; background: #c0392b; color: #fff; font-size: 11px; padding: 4px; font-family: monospace; z-index: 9999; display: none; max-height: 40%; overflow: auto; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <h1>
+    <button id="backBtn" title="Pause">⬅️</button>
+    🐱 TOM & JERRY — SHOOT 🐭
+    <button id="camBtn" title="Change Camera">📷</button>
+  </h1>
+
+  <div id="scoreBar">
+    <div class="scoreItem">
+      <div class="scoreLabel">Stage</div>
+      <div class="scoreValue yellow" id="levelVal">1</div>
+    </div>
+    <div class="scoreItem">
+      <div class="scoreLabel">Coins</div>
+      <div class="scoreValue gold" id="coinVal">0</div>
+    </div>
+    <div class="scoreItem">
+      <div class="scoreLabel">Total Score</div>
+      <div class="scoreValue green" id="scoreVal">0</div>
+    </div>
+  </div>
+
+  <div id="healthPanel">
+    <div class="healthRow">
+      <span class="healthLabel jerry">🐭 Jerry</span>
+      <div class="bar"><div class="barFill" id="jerryFill" style="width:100%"></div></div>
+      <span class="healthValue" id="jerryVal">100%</span>
+    </div>
+    <div class="healthRow">
+      <span class="healthLabel tom" id="tomNameLabel">🐱 Tom</span>
+      <div class="bar"><div class="barFill" id="tomFill" style="width:35%"></div></div>
+      <span class="healthValue" id="tomVal">35%</span>
+    </div>
+  </div>
+
+  <div id="boardWrap">
+    <div id="board">
+      <div id="road"></div>
+      <div id="stripes"></div>
+
+      <!-- STAGE PROGRESS BOARD -->
+      <div id="stageBoard">
+        <div class="stage-title">STAGE <span id="stageNum">1</span></div>
+        <div class="stage-bar-bg"><div class="stage-bar-fill" id="stageFill"></div></div>
+      </div>
+
+      <!-- MISSION BOARD -->
+      <div id="missionBoard">
+        <div class="mission-title" id="missionTitle">MISSION</div>
+        <div class="mission-text" id="missionText">Hit Jerry 15 times</div>
+        <div class="mission-progress" id="missionProgress">0 / 15</div>
+      </div>
+
+      <div id="jerry">
+        <div class="jerry-bounce">
+          <div class="tail"></div>
+          <div class="body"></div>
+          <div class="headPivot">
+            <div class="ear l"></div>
+            <div class="ear r"></div>
+            <div class="head"></div>
+            <div class="eye l"><div class="pupil"></div><div class="shine"></div></div>
+            <div class="eye r"><div class="pupil"></div><div class="shine"></div></div>
+            <div class="nose"></div>
+            <div class="whisker l1"></div>
+            <div class="whisker l2"></div>
+            <div class="whisker r1"></div>
+            <div class="whisker r2"></div>
+            <div class="mouth"></div>
+          </div>
+          <div class="sweat"></div>
+        </div>
+      </div>
+
+      <div id="tom">
+        <div class="tail"></div>
+        <div class="ear l"></div>
+        <div class="ear r"></div>
+        <div class="armPivot">
+          <div class="arm"></div>
+          <div class="gun"></div>
+        </div>
+        <div class="body"></div>
+        <div class="head"></div>
+        <div class="eye l"></div>
+        <div class="eye r"></div>
+        <div class="nose"></div>
+        <div class="mouth"></div>
+        <div class="whisker l1"></div>
+        <div class="whisker l2"></div>
+        <div class="whisker r1"></div>
+        <div class="whisker r2"></div>
+      </div>
+
+      <div id="slowTint"></div>
+      <div id="invTint"></div>
+      <div id="statusBadges"></div>
+
+      <div id="comboFlash"></div>
+
+      <div class="overlay" id="startScreen">
+        <h2>🐱 SHOOT JERRY! 🐭</h2>
+        
+        <!-- CONTINUE BUTTON -->
+        <button class="btn green hidden" id="continueBtn" style="margin-bottom: 10px; animation: pulse 1s infinite;">▶ CONTINUE RUN</button>
+
+        <!-- TABS -->
+        <div class="shop-tabs">
+          <button class="tab-btn active" id="tabUpgrades">UPGRADES</button>
+          <button class="tab-btn" id="tabChars">CHARACTERS</button>
+          <button class="tab-btn" id="tabTools">WEAPONS</button>
+          <button class="tab-btn" id="tabAch">🏆 ACHIEVEMENTS</button>
+        </div>
+
+        <!-- UPGRADES TAB -->
+        <div class="shop-content active" id="contentUpgrades">
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-title">Armor Lvl <span id="lvlHp">0</span></div>
+              <div class="shop-desc">Start with +15% HP</div>
+            </div>
+            <button class="shop-buy" id="buyHp">🪙 20</button>
+          </div>
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-title">Damage Lvl <span id="lvlDmg">0</span></div>
+              <div class="shop-desc">+1 bullet damage</div>
+            </div>
+            <button class="shop-buy" id="buyDmg">🪙 30</button>
+          </div>
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-title">Rapid Fire Lvl <span id="lvlSpd">0</span></div>
+              <div class="shop-desc">-50ms shoot delay</div>
+            </div>
+            <button class="shop-buy" id="buySpd">🪙 40</button>
+          </div>
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-title">Lucky Start</div>
+              <div class="shop-desc">Begin with random Combo</div>
+            </div>
+            <button class="shop-buy" id="buyLuck">🪙 50</button>
+          </div>
+        </div>
+
+        <!-- CHARACTERS TAB -->
+        <div class="shop-content" id="contentChars">
+          <div class="shop-item" id="charTom">
+            <div class="shop-item-info">
+              <div class="shop-title">🐱 Tom</div>
+              <div class="shop-desc">Balanced stats</div>
+            </div>
+            <button class="shop-buy" id="buyTom">ON</button>
+          </div>
+          <div class="shop-item" id="charButch">
+            <div class="shop-item-info">
+              <div class="shop-title">😼 Butch</div>
+              <div class="shop-desc">+2 Damage, High HP</div>
+            </div>
+            <button class="shop-buy" id="buyButch">🪙 300</button>
+          </div>
+          <div class="shop-item" id="charTopsy">
+            <div class="shop-item-info">
+              <div class="shop-title">😾 Topsy</div>
+              <div class="shop-desc">Super fast, low HP</div>
+            </div>
+            <button class="shop-buy" id="buyTopsy">🪙 500</button>
+          </div>
+          <div class="shop-item" id="charLightning">
+            <div class="shop-item-info">
+              <div class="shop-title">⚡ Lightning</div>
+              <div class="shop-desc">Max stats, max speed</div>
+            </div>
+            <button class="shop-buy" id="buyLightning">🪙 1000</button>
+          </div>
+        </div>
+
+        <!-- WEAPONS TAB -->
+        <div class="shop-content" id="contentTools">
+          <!-- Weapons -->
+          <div class="shop-item" id="wpnPistol">
+            <div class="shop-item-info">
+              <div class="shop-title">🔫 Standard Pistol</div>
+              <div class="shop-desc">Classic single shot</div>
+            </div>
+            <button class="shop-buy" id="buyPistol">ON</button>
+          </div>
+          <div class="shop-item" id="wpnShotgun">
+            <div class="shop-item-info">
+              <div class="shop-title">💥 Scatter Shotgun</div>
+              <div class="shop-desc">Fires 3 bullets in a spread</div>
+            </div>
+            <button class="shop-buy" id="buyShotgun">🪙 150</button>
+          </div>
+          <div class="shop-item" id="wpnUzi">
+            <div class="shop-item-info">
+              <div class="shop-title">🔫 Dual Uzis</div>
+              <div class="shop-desc">Extreme fire rate</div>
+            </div>
+            <button class="shop-buy" id="buyUzi">🪙 250</button>
+          </div>
+          <div class="shop-item" id="wpnRocket">
+            <div class="shop-item-info">
+              <div class="shop-title">🔪 Rocket Launcher</div>
+              <div class="shop-desc">Double damage, slow shot</div>
+            </div>
+            <button class="shop-buy" id="buyRocket">🪙 400</button>
+          </div>
+          
+          <!-- Tools -->
+          <div class="shop-item" id="toolMagnet">
+            <div class="shop-item-info">
+              <div class="shop-title">Coin Magnet</div>
+              <div class="shop-desc">Attracts nearby pickups</div>
+            </div>
+            <button class="shop-buy" id="buyMagnet">🪙 250</button>
+          </div>
+          <div class="shop-item" id="toolTimeWarp">
+            <div class="shop-item-info">
+              <div class="shop-title">Time Warp</div>
+              <div class="shop-desc">Slow-mo when Jerry is low</div>
+            </div>
+            <button class="shop-buy" id="buyTimeWarp">🪙 300</button>
+          </div>
+          <div class="shop-item" id="toolRepulsor">
+            <div class="shop-item-info">
+              <div class="shop-title">Repulsor</div>
+              <div class="shop-desc">Smash barriers & trash</div>
+            </div>
+            <button class="shop-buy" id="buyRepulsor">🪙 400</button>
+          </div>
+        </div>
+
+        <!-- ACHIEVEMENTS TAB -->
+        <div class="shop-content" id="contentAch">
+          <div class="ach-item" id="ach-firstBlood">
+            <div class="ach-info">
+              <div class="ach-title">First Blood</div>
+              <div class="ach-desc">Hit Jerry for the first time</div>
+              <div class="ach-reward">🪙 +20</div>
+            </div>
+            <button class="ach-btn" data-ach="firstBlood">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-sharpshooter">
+            <div class="ach-info">
+              <div class="ach-title">Sharpshooter</div>
+              <div class="ach-desc">Hit Jerry 50 times in one run</div>
+              <div class="ach-reward">🪙 +50</div>
+            </div>
+            <button class="ach-btn" data-ach="sharpshooter">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-comboMaster">
+            <div class="ach-info">
+              <div class="ach-title">Combo Master</div>
+              <div class="ach-desc">Reach a ×10 combo</div>
+              <div class="ach-reward">🪙 +50</div>
+            </div>
+            <button class="ach-btn" data-ach="comboMaster">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-bruiser">
+            <div class="ach-info">
+              <div class="ach-title">Bruiser</div>
+              <div class="ach-desc">Smash 10 obstacles</div>
+              <div class="ach-reward">🪙 +30</div>
+            </div>
+            <button class="ach-btn" data-ach="bruiser">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-treasure">
+            <div class="ach-info">
+              <div class="ach-title">Treasure Hunter</div>
+              <div class="ach-desc">Open 5 chests</div>
+              <div class="ach-reward">🪙 +40</div>
+            </div>
+            <button class="ach-btn" data-ach="treasure">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-survivor">
+            <div class="ach-info">
+              <div class="ach-title">Survivor</div>
+              <div class="ach-desc">Reach Stage 3</div>
+              <div class="ach-reward">🪙 +75</div>
+            </div>
+            <button class="ach-btn" data-ach="survivor">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-untouchable">
+            <div class="ach-info">
+              <div class="ach-title">Untouchable</div>
+              <div class="ach-desc">Reach Stage 5 with 100% HP</div>
+              <div class="ach-reward">🪙 +100</div>
+            </div>
+            <button class="ach-btn" data-ach="untouchable">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-richCat">
+            <div class="ach-info">
+              <div class="ach-title">Rich Cat</div>
+              <div class="ach-desc">Hold 500 total coins</div>
+              <div class="ach-reward">🪙 +50</div>
+            </div>
+            <button class="ach-btn" data-ach="richCat">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-fullyUpgraded">
+            <div class="ach-info">
+              <div class="ach-title">Fully Upgraded</div>
+              <div class="ach-desc">Max out any upgrade</div>
+              <div class="ach-reward">🪙 +100</div>
+            </div>
+            <button class="ach-btn" data-ach="fullyUpgraded">CLAIM</button>
+          </div>
+          <div class="ach-item" id="ach-jack">
+            <div class="ach-info">
+              <div class="ach-title">Jack of All Trades</div>
+              <div class="ach-desc">Equip 3 different items</div>
+              <div class="ach-reward">🪙 +200</div>
+            </div>
+            <button class="ach-btn" data-ach="jack">CLAIM</button>
+          </div>
+        </div>
+
+        <button class="btn green" id="startBtn" style="margin-top: 20px;">▶ START GAME</button>
+      </div>
+
+      <div class="overlay hidden" id="pauseScreen">
+        <h2>⏸ PAUSED</h2>
+        <div class="scoreSummary">
+          <div class="scoreSummaryRow"><span class="lbl">Score</span><span class="val" id="pauseScore">0</span></div>
+          <div class="scoreSummaryRow"><span class="lbl">Coins</span><span class="val" id="pauseCoins">0</span></div>
+        </div>
+        <button class="btn" id="resumeBtn">▶ RESUME</button>
+        <button class="btn green" id="saveQuitBtn" style="padding: 14px 20px; font-size: 15px;">💾 SAVE & QUIT</button>
+        <button class="btn gray" id="restartBtn1" style="padding: 14px 20px; font-size: 15px;">🔄 QUIT TO MENU</button>
+      </div>
+
+      <div class="overlay hidden" id="loseScreen">
+        <h2>😵 GAME OVER</h2>
+        <p id="loseMsg">You hit an obstacle!</p>
+        <div class="scoreSummary">
+          <div class="scoreSummaryRow big"><span class="lbl">SCORE</span><span class="val" id="loseScore">0</span></div>
+          <div class="scoreSummaryRow coin"><span class="lbl">COINS EARNED</span><span class="val" id="loseCoins">0</span></div>
+        </div>
+        <button class="btn green" id="tryAgainBtn">▶ CONTINUE</button>
+      </div>
+
+      <div class="overlay hidden" id="catchScreen">
+        <h2>🎉 JERRY DEFEATED!</h2>
+        <p>You shot him down — nice aim!</p>
+        <div class="scoreSummary">
+          <div class="scoreSummaryRow big"><span class="lbl">SCORE</span><span class="val" id="winScore">0</span></div>
+          <div class="scoreSummaryRow coin"><span class="lbl">COINS EARNED</span><span class="val" id="winCoins">0</span></div>
+        </div>
+        <button class="btn green" id="nextChaseBtn">▶ CONTINUE</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="errorBox"></div>
+
+<script>
+(function() {
+  "use strict";
+
+  var errorBox = document.getElementById("errorBox");
+  function showError(msg) {
+    errorBox.style.display = "block";
+    errorBox.textContent += msg + "\n";
+  }
+  window.onerror = function(msg, url, line) {
+    showError("ERROR: " + msg + " @ line " + line);
+  };
+
+  try {
+    // ---- DOM ----
+    var board       = document.getElementById("board");
+    var jerryEl     = document.getElementById("jerry");
+    var jerryBounce = jerryEl.querySelector(".jerry-bounce");
+    var jerryTail   = jerryEl.querySelector(".tail");
+    var jerryHead   = jerryEl.querySelector(".headPivot");
+    var jerryPupils = jerryEl.querySelectorAll(".pupil");
+    var jerrySweat  = jerryEl.querySelector(".sweat");
+    var jerryMouth  = jerryEl.querySelector(".mouth");
+    var tomEl       = document.getElementById("tom");
+    var tomArmPivot = tomEl.querySelector(".armPivot");
+    var startScreen = document.getElementById("startScreen");
+    var pauseScreen = document.getElementById("pauseScreen");
+    var loseScreen  = document.getElementById("loseScreen");
+    var catchScreen = document.getElementById("catchScreen");
+    var loseMsg     = document.getElementById("loseMsg");
+    var jerryFill   = document.getElementById("jerryFill");
+    var jerryVal    = document.getElementById("jerryVal");
+    var tomFill     = document.getElementById("tomFill");
+    var tomVal      = document.getElementById("tomVal");
+    var tomNameLabel = document.getElementById("tomNameLabel");
+
+    var scoreVal    = document.getElementById("scoreVal");
+    var coinVal     = document.getElementById("coinVal");
+    var levelVal    = document.getElementById("levelVal");
+    var comboFlash  = document.getElementById("comboFlash");
+    
+    var pauseScore  = document.getElementById("pauseScore");
+    var pauseCoins  = document.getElementById("pauseCoins");
+    var loseScore   = document.getElementById("loseScore");
+    var loseCoins   = document.getElementById("loseCoins");
+    var winScore    = document.getElementById("winScore");
+    var winCoins    = document.getElementById("winCoins");
+
+    var slowTint    = document.getElementById("slowTint");
+    var invTint     = document.getElementById("invTint");
+    var statusBadges = document.getElementById("statusBadges");
+    
+    // Stage DOM
+    var stageNum    = document.getElementById("stageNum");
+    var stageFill   = document.getElementById("stageFill");
+
+    // Tabs
+    var tabUpgrades = document.getElementById("tabUpgrades");
+    var tabChars = document.getElementById("tabChars");
+    var tabTools = document.getElementById("tabTools");
+    var tabAch = document.getElementById("tabAch");
+    var contentUpgrades = document.getElementById("contentUpgrades");
+    var contentChars = document.getElementById("contentChars");
+    var contentTools = document.getElementById("contentTools");
+    var contentAch = document.getElementById("contentAch");
+
+    // Mission DOM
+    var missionBoard = document.getElementById("missionBoard");
+    var missionTitle = document.getElementById("missionTitle");
+    var missionText  = document.getElementById("missionText");
+    var missionProg  = document.getElementById("missionProgress");
+
+    // Shop DOM
+    var lvlHp = document.getElementById("lvlHp");
+    var lvlDmg = document.getElementById("lvlDmg");
+    var lvlSpd = document.getElementById("lvlSpd");
+    
+    var buyHp = document.getElementById("buyHp");
+    var buyDmg = document.getElementById("buyDmg");
+    var buySpd = document.getElementById("buySpd");
+    var buyLuck = document.getElementById("buyLuck");
+
+    // Characters DOM
+    var itemTom = document.getElementById("charTom");
+    var itemButch = document.getElementById("charButch");
+    var itemTopsy = document.getElementById("charTopsy");
+    var itemLightning = document.getElementById("charLightning");
+    var buyTom = document.getElementById("buyTom");
+    var buyButch = document.getElementById("buyButch");
+    var buyTopsy = document.getElementById("buyTopsy");
+    var buyLightning = document.getElementById("buyLightning");
+
+    // Weapons & Tools DOM
+    var itemPistol = document.getElementById("wpnPistol");
+    var itemShotgun = document.getElementById("wpnShotgun");
+    var itemUzi = document.getElementById("wpnUzi");
+    var itemRocket = document.getElementById("wpnRocket");
+    var buyPistol = document.getElementById("buyPistol");
+    var buyShotgun = document.getElementById("buyShotgun");
+    var buyUzi = document.getElementById("buyUzi");
+    var buyRocket = document.getElementById("buyRocket");
+
+    var buyMagnet = document.getElementById("buyMagnet");
+    var buyTimeWarp = document.getElementById("buyTimeWarp");
+    var buyRepulsor = document.getElementById("buyRepulsor");
+
+    var itemMagnet = document.getElementById("toolMagnet");
+    var itemTimeWarp = document.getElementById("toolTimeWarp");
+    var itemRepulsor = document.getElementById("toolRepulsor");
+    
+    var continueBtn = document.getElementById("continueBtn");
+    var saveQuitBtn = document.getElementById("saveQuitBtn");
+
+    // Header Buttons
+    var backBtn = document.getElementById("backBtn");
+    var camBtn = document.getElementById("camBtn");
+    var camZoomLevel = 0;
+    var zoomScales = [1, 1.25, 0.8];
+
+    // ---- CONSTANTS ----
+    var LANE_X = [0.165, 0.5, 0.835];
+    var JERRY_SIZE = 55;
+    var TOM_SIZE = 70;
+    var TOM_HEIGHT = 120;
+    var BASE_SCROLL_SPEED = 4;
+    var JERRY_TOP = 100;
+    var CHASE_GAP = 130;
+
+    var MIN_VERTICAL_SPACING = 220;
+    var MIN_CROSS_SPACING    = 130;
+
+    var JERRY_START = 100;
+    var BASE_TOM_START   = 35;
+    var BASE_SHOT_DAMAGE = 2;
+    var BASE_SHOOT_COOLDOWN = 400;
+    var TOM_LIFE_GAIN = 20;
+    var BULLET_SPEED = 12;
+
+    var POINTS_PER_HIT = 10;
+    var COMBO_TIMEOUT_MS = 1500;
+    var COMBO_BONUS_PER_LEVEL = 5;
+
+    var LOOK_FORWARD_MS = 2000;
+    var LOOK_ROTATE_MS  = 400;
+    var LOOK_BACK_MS    = 1000;
+    var LOOK_CYCLE_MS   = LOOK_FORWARD_MS + LOOK_ROTATE_MS + LOOK_BACK_MS + LOOK_ROTATE_MS;
+
+    var PICKUP_SPAWN_INTERVAL = 3500;
+    var SLOW_DURATION = 4000;
+    var INVINCIBLE_DURATION = 5000;
+    var CHEESE_POINTS = 50;
+    var GOLD_CHEESE_POINTS = 150;
+    var BONUS_POINTS = [25, 50, 75, 100];
+    
+    // 2x Coin Event
+    var EVENT_INTERVAL_MS = 600000; 
+    var EVENT_DURATION_MS = 60000;  
+    var eventTimer = 15000; // Triggers 15 seconds into the run!
+    var eventRemaining = 0;
+
+    // Weapons & Tools
+    var currentWeapon = "pistol";
+    var hasShotgun = false, hasUzi = false, hasRocket = false;
+    
+    var toolMagnetActive = false;
+    var toolTimeWarpActive = false;
+    var toolRepulsorActive = false;
+    var timeWarpTriggered = false;
+
+    // Characters
+    var currentChar = "tom";
+    var hasButch = false, hasTopsy = false, hasLightning = false;
+
+    // Stage System
+    var currentStage = 1;
+    var stageScore = 0;
+    var stageTarget = 300; 
+    var currentScrollSpeed = BASE_SCROLL_SPEED;
+
+    // ---- STATE ----
+    var bobAmount = 0;
+    var lookTimer = 0;
+    var tomLane = 1;
+    var jerryLane = 1;
+    var tomX_px = 0;
+    var obstacles = [];
+    var collectibles = [];
+    var pickups = [];
+    var bullets = [];
+    var running = false;
+    var paused = false;
+    var lastFrame = 0;
+    var spawnTimer = 0;
+    var aiTimer = 0;
+    var bobTimer = 0;
+    var shootCooldown = 0;
+    var pickupTimer = 0;
+    var slowRemaining = 0;
+    var invRemaining = 0;
+    var timeScale = 1;
+
+    // Random Combo State
+    var currentComboType = "normal";
+    var comboTypeTimer = 0;
+
+    // Mission State
+    var mission = { type: "hits", target: 15, current: 0, complete: false };
+
+    // Meta Progression
+    var totalCoins = 0;
+    var totalScore = 0;
+    var upgHp = 0, upgDmg = 0, upgSpd = 0, upgLuck = false;
+    
+    // Achievements
+    var ach = {
+      firstBlood: { unlocked: false, claimed: false },
+      sharpshooter: { unlocked: false, claimed: false },
+      comboMaster: { unlocked: false, claimed: false },
+      bruiser: { unlocked: false, claimed: false },
+      treasure: { unlocked: false, claimed: false },
+      survivor: { unlocked: false, claimed: false },
+      untouchable: { unlocked: false, claimed: false },
+      richCat: { unlocked: false, claimed: false },
+      fullyUpgraded: { unlocked: false, claimed: false },
+      jack: { unlocked: false, claimed: false }
+    };
+    
+    try { 
+      totalCoins = +(localStorage.getItem("tjCoins") || 0); 
+      totalScore = +(localStorage.getItem("tjTotalScore") || 0);
+      upgHp = +(localStorage.getItem("tjUpgHp") || 0);
+      upgDmg = +(localStorage.getItem("tjUpgDmg") || 0);
+      upgSpd = +(localStorage.getItem("tjUpgSpd") || 0);
+      upgLuck = (localStorage.getItem("tjUpgLuck") === "true");
+      
+      currentWeapon = localStorage.getItem("tjWeapon") || "pistol";
+      hasShotgun = (localStorage.getItem("tjWpnShotgun") === "true");
+      hasUzi = (localStorage.getItem("tjWpnUzi") === "true");
+      hasRocket = (localStorage.getItem("tjWpnRocket") === "true");
+      
+      currentChar = localStorage.getItem("tjChar") || "tom";
+      hasButch = (localStorage.getItem("tjCharButch") === "true");
+      hasTopsy = (localStorage.getItem("tjCharTopsy") === "true");
+      hasLightning = (localStorage.getItem("tjCharLightning") === "true");
+      
+      toolMagnetActive = (localStorage.getItem("tjToolMagnet") === "true");
+      toolTimeWarpActive = (localStorage.getItem("tjToolTimeWarp") === "true");
+      toolRepulsorActive = (localStorage.getItem("tjToolRepulsor") === "true");
+      
+      var savedAch = JSON.parse(localStorage.getItem("tjAch") || "{}");
+      for(var k in savedAch) {
+        if(ach[k]) { ach[k].unlocked = savedAch[k].unlocked; ach[k].claimed = savedAch[k].claimed; }
+      }
+    } catch(e) {}
+
+    // Run Stats
+    var runCoins = 0;
+    var runScore = 0; 
+    var jerryHealth = JERRY_START;
+    var tomHealth   = 0; 
+    var runHits = 0;
+    var runSmash = 0;
+    var runChests = 0;
+
+    var combo = 0;
+    var comboTimer = 0;
+    var best = 0;
+    try { best = +(localStorage.getItem("tjShootBest") || 0); } catch(e) {}
+
+    var boardW = 400, boardH = 600;
+
+    // ============================================================
+    // BACK BUTTON LOGIC (ANDROID)
+    // ============================================================
+    try {
+      history.pushState({ page: "game" }, "Game", "");
+    } catch(e) {}
+
+    window.addEventListener("popstate", function(e) {
+      if (running && !paused) {
+        togglePause();
+        history.pushState({ page: "game" }, "Game", ""); 
+      } else if (paused) {
+        togglePause();
+        history.pushState({ page: "game" }, "Game", "");
+      } else {
+        if (confirm("Exit Tom & Jerry?")) {
+          history.back();
+        } else {
+          history.pushState({ page: "game" }, "Game", "");
+        }
+      }
+    });
+
+    backBtn.addEventListener("click", function() {
+      if (running && !paused) togglePause();
+    });
+
+    // ============================================================
+    // SAVE & LOAD SYSTEM
+    // ============================================================
+    function checkSave() {
+      try {
+        var saveData = localStorage.getItem("tjSaveState");
+        if (saveData) {
+          continueBtn.classList.remove("hidden");
+        } else {
+          continueBtn.classList.add("hidden");
+        }
+      } catch(e) {}
+    }
+    checkSave();
+
+    function saveGame() {
+      var state = {
+        stage: currentStage, stageScore: stageScore, stageTarget: stageTarget,
+        runScore: runScore, runCoins: runCoins, runHits: runHits, runSmash: runSmash, runChests: runChests,
+        jerryHealth: jerryHealth, tomHealth: tomHealth,
+        missionType: mission.type, missionTarget: mission.target, missionCurrent: mission.current,
+        combo: combo
+      };
+      try { localStorage.setItem("tjSaveState", JSON.stringify(state)); } catch(e) {}
+    }
+
+    function clearSave() {
+      try { localStorage.removeItem("tjSaveState"); } catch(e) {}
+    }
+
+    continueBtn.addEventListener("click", function() {
+      try {
+        var state = JSON.parse(localStorage.getItem("tjSaveState"));
+        if (state) {
+          currentStage = state.stage;
+          stageScore = state.stageScore;
+          stageTarget = state.stageTarget;
+          runScore = state.runScore;
+          runCoins = state.runCoins;
+          runHits = state.runHits;
+          runSmash = state.runSmash;
+          runChests = state.runChests;
+          jerryHealth = state.jerryHealth;
+          tomHealth = state.tomHealth;
+          combo = state.combo || 0;
+          
+          mission.type = state.missionType;
+          mission.target = state.missionTarget;
+          mission.current = state.missionCurrent;
+          mission.complete = (mission.current >= mission.target);
+          if (mission.complete) {
+            missionBoard.classList.add("complete");
+            missionTitle.textContent = "COMPLETE!";
+            missionProg.textContent = "BONUS +250";
+          } else {
+            missionBoard.classList.remove("complete");
+            if (mission.type === "hits") { missionTitle.textContent = "SHARPSHOOTER"; missionText.textContent = "Hit Jerry " + mission.target + " times"; }
+            if (mission.type === "pickups") { missionTitle.textContent = "COLLECTOR"; missionText.textContent = "Grab " + mission.target + " pickups"; }
+            if (mission.type === "smash") { missionTitle.textContent = "SMASHER"; missionText.textContent = "Destroy " + mission.target + " obstacles"; }
+            if (mission.type === "chests") { missionTitle.textContent = "TREASURE HUNTER"; missionText.textContent = "Collect " + mission.target + " chests"; }
+            updateMissionUI();
+          }
+          
+          startGame(true); 
+        }
+      } catch(e) {
+        startGame(false);
+      }
+    });
+
+    saveQuitBtn.addEventListener("click", function() {
+      saveGame();
+      paused = false;
+      pauseScreen.classList.add("hidden");
+      startScreen.classList.remove("hidden");
+      checkSave();
+      clearBoard();
+      running = false;
+      backBtn.style.display = "none";
+    });
+
+    // ============================================================
+    // TABS & CAMERA
+    // ============================================================
+    function setTab(activeTab) {
+      tabUpgrades.classList.remove("active");
+      tabChars.classList.remove("active");
+      tabTools.classList.remove("active");
+      tabAch.classList.remove("active");
+      contentUpgrades.classList.remove("active");
+      contentChars.classList.remove("active");
+      contentTools.classList.remove("active");
+      contentAch.classList.remove("active");
+      
+      activeTab.classList.add("active");
+      if (activeTab === tabUpgrades) contentUpgrades.classList.add("active");
+      if (activeTab === tabChars) contentChars.classList.add("active");
+      if (activeTab === tabTools) contentTools.classList.add("active");
+      if (activeTab === tabAch) contentAch.classList.add("active");
+    }
+
+    tabUpgrades.addEventListener("click", function() { setTab(tabUpgrades); });
+    tabChars.addEventListener("click", function() { setTab(tabChars); });
+    tabTools.addEventListener("click", function() { setTab(tabTools); });
+    tabAch.addEventListener("click", function() { setTab(tabAch); });
+
+    camBtn.addEventListener("click", function() {
+      camZoomLevel = (camZoomLevel + 1) % zoomScales.length;
+      var scale = zoomScales[camZoomLevel];
+      board.style.transform = "translate(0, 0) scale(" + scale + ")";
+      beep(600, 0.05, "square", 0.1);
+    });
+
+    // ============================================================
+    // ACHIEVEMENTS
+    // ============================================================
+    function saveAch() {
+      try { localStorage.setItem("tjAch", JSON.stringify(ach)); } catch(e) {}
+    }
+
+    function unlockAch(id) {
+      if (ach[id] && !ach[id].unlocked) {
+        ach[id].unlocked = true;
+        saveAch();
+        updateAchUI();
+        comboFlash.textContent = "🏆 ACHIEVEMENT!";
+        comboFlash.style.color = "#ffd166";
+        comboFlash.classList.remove("show");
+        void comboFlash.offsetWidth;
+        comboFlash.classList.add("show");
+        beep(1000, 0.15, "square", 0.25);
+        setTimeout(function(){ beep(1500, 0.2, "square", 0.25); }, 150);
+      }
+    }
+
+    function updateAchUI() {
+      for (var id in ach) {
+        var el = document.getElementById("ach-" + id);
+        if (!el) continue;
+        var btn = el.querySelector(".ach-btn");
+        
+        el.classList.remove("unlocked", "claimed");
+        if (ach[id].claimed) {
+          el.classList.add("claimed");
+          btn.textContent = "DONE";
+          btn.disabled = true;
+        } else if (ach[id].unlocked) {
+          el.classList.add("unlocked");
+          btn.textContent = "CLAIM";
+          btn.disabled = false;
+        } else {
+          btn.textContent = "LOCKED";
+          btn.disabled = true;
+        }
+      }
+    }
+
+    document.querySelectorAll(".ach-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        var id = this.getAttribute("data-ach");
+        if (ach[id] && ach[id].unlocked && !ach[id].claimed) {
+          ach[id].claimed = true;
+          saveAch();
+          
+          var rewards = { firstBlood: 20, sharpshooter: 50, comboMaster: 50, bruiser: 30, treasure: 40, survivor: 75, untouchable: 100, richCat: 50, fullyUpgraded: 100, jack: 200 };
+          totalCoins += (rewards[id] || 20);
+          saveMeta();
+          updateShopUI();
+          updateAchUI();
+          beep(800, 0.1, "square", 0.25);
+          setTimeout(function(){ beep(1200, 0.15, "square", 0.25); }, 100);
+        }
+      });
+    });
+
+    // ============================================================
+    // SHOP & META
+    // ============================================================
+    function updateShopUI() {
+      coinVal.textContent = totalCoins;
+      lvlHp.textContent = upgHp;
+      lvlDmg.textContent = upgDmg;
+      lvlSpd.textContent = upgSpd;
+      
+      var costHp = 20 + upgHp * 15;
+      var costDmg = 30 + upgDmg * 20;
+      var costSpd = 40 + upgSpd * 25;
+      
+      buyHp.innerHTML = "🪙 " + costHp;
+      buyDmg.innerHTML = "🪙 " + costDmg;
+      buySpd.innerHTML = "🪙 " + costSpd;
+      buyLuck.innerHTML = upgLuck ? "OWNED" : "🪙 50";
+      
+      buyHp.disabled = totalCoins < costHp || upgHp >= 3;
+      buyDmg.disabled = totalCoins < costDmg || upgDmg >= 3;
+      buySpd.disabled = totalCoins < costSpd || upgSpd >= 3;
+      buyLuck.disabled = totalCoins < 50 || upgLuck;
+      
+      if (upgHp >= 3) buyHp.innerHTML = "MAX";
+      if (upgDmg >= 3) buyDmg.innerHTML = "MAX";
+      if (upgSpd >= 3) buySpd.innerHTML = "MAX";
+
+      if (upgHp >= 3 || upgDmg >= 3 || upgSpd >= 3) unlockAch("fullyUpgraded");
+
+      // Characters Toggles
+      itemTom.classList.remove("equipped");
+      itemButch.classList.remove("equipped");
+      itemTopsy.classList.remove("equipped");
+      itemLightning.classList.remove("equipped");
+
+      if (currentChar === "tom") itemTom.classList.add("equipped");
+      if (currentChar === "butch") itemButch.classList.add("equipped");
+      if (currentChar === "topsy") itemTopsy.classList.add("equipped");
+      if (currentChar === "lightning") itemLightning.classList.add("equipped");
+
+      buyTom.innerHTML = (currentChar === "tom") ? "ON" : "EQUIP";
+      buyTom.disabled = (currentChar === "tom");
+
+      if (!hasButch) { buyButch.innerHTML = "🪙 300"; buyButch.disabled = totalCoins < 300; }
+      else if (currentChar === "butch") { buyButch.innerHTML = "ON"; buyButch.disabled = false; }
+      else { buyButch.innerHTML = "EQUIP"; buyButch.disabled = false; }
+
+      if (!hasTopsy) { buyTopsy.innerHTML = "🪙 500"; buyTopsy.disabled = totalCoins < 500; }
+      else if (currentChar === "topsy") { buyTopsy.innerHTML = "ON"; buyTopsy.disabled = false; }
+      else { buyTopsy.innerHTML = "EQUIP"; buyTopsy.disabled = false; }
+
+      if (!hasLightning) { buyLightning.innerHTML = "🪙 1000"; buyLightning.disabled = totalCoins < 1000; }
+      else if (currentChar === "lightning") { buyLightning.innerHTML = "ON"; buyLightning.disabled = false; }
+      else { buyLightning.innerHTML = "EQUIP"; buyLightning.disabled = false; }
+
+      // Weapons Toggles
+      itemPistol.classList.remove("equipped");
+      itemShotgun.classList.remove("equipped");
+      itemUzi.classList.remove("equipped");
+      itemRocket.classList.remove("equipped");
+
+      if (currentWeapon === "pistol") itemPistol.classList.add("equipped");
+      if (currentWeapon === "shotgun") itemShotgun.classList.add("equipped");
+      if (currentWeapon === "uzi") itemUzi.classList.add("equipped");
+      if (currentWeapon === "rocket") itemRocket.classList.add("equipped");
+
+      buyPistol.innerHTML = (currentWeapon === "pistol") ? "ON" : "EQUIP";
+      buyPistol.disabled = (currentWeapon === "pistol");
+
+      if (!hasShotgun) { buyShotgun.innerHTML = "🪙 150"; buyShotgun.disabled = totalCoins < 150; }
+      else if (currentWeapon === "shotgun") { buyShotgun.innerHTML = "ON"; buyShotgun.disabled = false; }
+      else { buyShotgun.innerHTML = "EQUIP"; buyShotgun.disabled = false; }
+
+      if (!hasUzi) { buyUzi.innerHTML = "🪙 250"; buyUzi.disabled = totalCoins < 250; }
+      else if (currentWeapon === "uzi") { buyUzi.innerHTML = "ON"; buyUzi.disabled = false; }
+      else { buyUzi.innerHTML = "EQUIP"; buyUzi.disabled = false; }
+
+      if (!hasRocket) { buyRocket.innerHTML = "🪙 400"; buyRocket.disabled = totalCoins < 400; }
+      else if (currentWeapon === "rocket") { buyRocket.innerHTML = "ON"; buyRocket.disabled = false; }
+      else { buyRocket.innerHTML = "EQUIP"; buyRocket.disabled = false; }
+
+      // Tools
+      itemMagnet.classList.remove("equipped");
+      itemTimeWarp.classList.remove("equipped");
+      itemRepulsor.classList.remove("equipped");
+
+      if (toolMagnetActive) {
+        buyMagnet.innerHTML = "ON"; buyMagnet.disabled = false; itemMagnet.classList.add("equipped");
+      } else {
+        buyMagnet.innerHTML = "🪙 250"; buyMagnet.disabled = totalCoins < 250;
+      }
+
+      if (toolTimeWarpActive) {
+        buyTimeWarp.innerHTML = "ON"; buyTimeWarp.disabled = false; itemTimeWarp.classList.add("equipped");
+      } else {
+        buyTimeWarp.innerHTML = "🪙 300"; buyTimeWarp.disabled = totalCoins < 300;
+      }
+
+      if (toolRepulsorActive) {
+        buyRepulsor.innerHTML = "ON"; buyRepulsor.disabled = false; itemRepulsor.classList.add("equipped");
+      } else {
+        buyRepulsor.innerHTML = "🪙 400"; buyRepulsor.disabled = totalCoins < 400;
+      }
+      
+      // Check tools achievement
+      var eqCount = (currentChar !== "tom" ? 1 : 0) + (currentWeapon !== "pistol" ? 1 : 0) + (toolMagnetActive?1:0) + (toolTimeWarpActive?1:0) + (toolRepulsorActive?1:0);
+      if (eqCount >= 3) unlockAch("jack");
+
+      if (totalCoins >= 500) unlockAch("richCat");
+    }
+
+    function saveMeta() {
+      try {
+        localStorage.setItem("tjCoins", totalCoins);
+        localStorage.setItem("tjTotalScore", totalScore);
+        localStorage.setItem("tjUpgHp", upgHp);
+        localStorage.setItem("tjUpgDmg", upgDmg);
+        localStorage.setItem("tjUpgSpd", upgSpd);
+        localStorage.setItem("tjUpgLuck", upgLuck);
+        
+        localStorage.setItem("tjWeapon", currentWeapon);
+        localStorage.setItem("tjWpnShotgun", hasShotgun);
+        localStorage.setItem("tjWpnUzi", hasUzi);
+        localStorage.setItem("tjWpnRocket", hasRocket);
+        
+        localStorage.setItem("tjChar", currentChar);
+        localStorage.setItem("tjCharButch", hasButch);
+        localStorage.setItem("tjCharTopsy", hasTopsy);
+        localStorage.setItem("tjCharLightning", hasLightning);
+        
+        localStorage.setItem("tjToolMagnet", toolMagnetActive);
+        localStorage.setItem("tjToolTimeWarp", toolTimeWarpActive);
+        localStorage.setItem("tjToolRepulsor", toolRepulsorActive);
+      } catch(e) {}
+    }
+
+    buyHp.addEventListener("click", function() { var cost = 20 + upgHp * 15; if (totalCoins >= cost && upgHp < 3) { totalCoins -= cost; upgHp++; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } });
+    buyDmg.addEventListener("click", function() { var cost = 30 + upgDmg * 20; if (totalCoins >= cost && upgDmg < 3) { totalCoins -= cost; upgDmg++; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } });
+    buySpd.addEventListener("click", function() { var cost = 40 + upgSpd * 25; if (totalCoins >= cost && upgSpd < 3) { totalCoins -= cost; upgSpd++; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } });
+    buyLuck.addEventListener("click", function() { if (totalCoins >= 50 && !upgLuck) { totalCoins -= 50; upgLuck = true; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } });
+
+    buyTom.addEventListener("click", function() { currentChar = "tom"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); });
+    buyButch.addEventListener("click", function() { 
+      if (hasButch) { currentChar = (currentChar === "butch") ? "tom" : "butch"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 300) { totalCoins -= 300; hasButch = true; currentChar = "butch"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+    buyTopsy.addEventListener("click", function() { 
+      if (hasTopsy) { currentChar = (currentChar === "topsy") ? "tom" : "topsy"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 500) { totalCoins -= 500; hasTopsy = true; currentChar = "topsy"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+    buyLightning.addEventListener("click", function() { 
+      if (hasLightning) { currentChar = (currentChar === "lightning") ? "tom" : "lightning"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 1000) { totalCoins -= 1000; hasLightning = true; currentChar = "lightning"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+
+    buyPistol.addEventListener("click", function() { currentWeapon = "pistol"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); });
+    buyShotgun.addEventListener("click", function() { 
+      if (hasShotgun) { currentWeapon = (currentWeapon === "shotgun") ? "none" : "shotgun"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 150) { totalCoins -= 150; hasShotgun = true; currentWeapon = "shotgun"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+    buyUzi.addEventListener("click", function() { 
+      if (hasUzi) { currentWeapon = (currentWeapon === "uzi") ? "none" : "uzi"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 250) { totalCoins -= 250; hasUzi = true; currentWeapon = "uzi"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+    buyRocket.addEventListener("click", function() { 
+      if (hasRocket) { currentWeapon = (currentWeapon === "rocket") ? "none" : "rocket"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 400) { totalCoins -= 400; hasRocket = true; currentWeapon = "rocket"; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); }
+    });
+
+    buyMagnet.addEventListener("click", function() { 
+      if (toolMagnetActive) { toolMagnetActive = false; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 250) { totalCoins -= 250; toolMagnetActive = true; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } 
+    });
+    buyTimeWarp.addEventListener("click", function() { 
+      if (toolTimeWarpActive) { toolTimeWarpActive = false; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 300) { totalCoins -= 300; toolTimeWarpActive = true; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } 
+    });
+    buyRepulsor.addEventListener("click", function() { 
+      if (toolRepulsorActive) { toolRepulsorActive = false; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); return; }
+      if (totalCoins >= 400) { totalCoins -= 400; toolRepulsorActive = true; saveMeta(); updateShopUI(); beep(800, 0.1, "square", 0.2); } 
+    });
+
+    // ============================================================
+    // EVENT & MISSIONS
+    // ============================================================
+    function triggerCoinEvent() {
+      eventRemaining = EVENT_DURATION_MS;
+      coinVal.classList.add("active2x");
+      comboFlash.textContent = "2x COIN EVENT!";
+      comboFlash.style.color = "#ffe566";
+      comboFlash.classList.remove("show");
+      void comboFlash.offsetWidth;
+      comboFlash.classList.add("show");
+      beep(1000, 0.2, "square", 0.25);
+      setTimeout(function(){ beep(1500, 0.3, "square", 0.25); }, 150);
+    }
+
+    function updateEvent(dtMs) {
+      if (eventRemaining > 0) {
+        eventRemaining -= dtMs;
+        if (eventRemaining <= 0) {
+          eventRemaining = 0;
+          coinVal.classList.remove("active2x");
+        } else {
+          if (Math.floor(eventRemaining / 1000) !== Math.floor((eventRemaining + dtMs) / 1000)) {
+            updateStatusBadges();
+          }
+        }
+      } else {
+        eventTimer -= dtMs;
+        if (eventTimer <= 0) {
+          eventTimer = EVENT_INTERVAL_MS;
+          if (running) triggerCoinEvent();
+        }
+      }
+    }
+
+    function rollMission() {
+      var r = Math.random();
+      missionBoard.classList.remove("complete");
+      mission.current = 0;
+      mission.complete = false;
+
+      if (r < 0.25) {
+        mission.type = "hits";
+        mission.target = 15;
+        missionTitle.textContent = "SHARPSHOOTER";
+        missionText.textContent = "Hit Jerry 15 times";
+      } else if (r < 0.50) {
+        mission.type = "pickups";
+        mission.target = 5;
+        missionTitle.textContent = "COLLECTOR";
+        missionText.textContent = "Grab 5 pickups";
+      } else if (r < 0.75) {
+        mission.type = "smash";
+        mission.target = 3;
+        missionTitle.textContent = "SMASHER";
+        missionText.textContent = "Destroy 3 obstacles";
+      } else {
+        mission.type = "chests";
+        mission.target = 2;
+        missionTitle.textContent = "TREASURE HUNTER";
+        missionText.textContent = "Collect 2 chests";
+      }
+      updateMissionUI();
+    }
+
+    function updateMissionUI() {
+      if (mission.complete) return;
+      missionProg.textContent = mission.current + " / " + mission.target;
+    }
+
+    function checkMissionProgress(type, amount) {
+      if (mission.complete || mission.type !== type) return;
+      mission.current += amount;
+      updateMissionUI();
+
+      if (mission.current >= mission.target) {
+        completeMission();
+      }
+    }
+
+    function completeMission() {
+      mission.complete = true;
+      missionBoard.classList.add("complete");
+      missionTitle.textContent = "COMPLETE!";
+      missionProg.textContent = "BONUS +10 🪙";
+      
+      addBonusPoints(250, "MISSION COMPLETE!", "gold");
+      
+      // Give Coins Directly
+      var coinBonus = 10;
+      if (eventRemaining > 0) coinBonus *= 2;
+      totalCoins += coinBonus; // Add directly to total coins
+      saveMeta();
+      
+      showPopup("+" + coinBonus + " 🪙", "gold", tomLane, tomBodyTop() - 50);
+      updateScoreUI();
+      
+      // Heal Tom
+      tomHealth += 25;
+      if (tomHealth > 100) tomHealth = 100;
+      updateBars();
+
+      beep(800, 0.15, "square", 0.25);
+      setTimeout(function(){ beep(1200, 0.15, "square", 0.25); }, 100);
+      setTimeout(function(){ beep(1600, 0.3, "square", 0.25); }, 200);
+    }
+
+    // ============================================================
+    // STAGE SYSTEM
+    // ============================================================
+    function addStageProgress(amount) {
+      stageScore += amount;
+      if (stageScore >= stageTarget) {
+        stageScore -= stageTarget;
+        currentStage++;
+        stageTarget = Math.floor(300 + (currentStage - 1) * 150); 
+        
+        totalCoins += 20;
+        saveMeta();
+        showPopup("+20 🪙", "gold", tomLane, tomBodyTop() - 50);
+        
+        tomHealth = 100; 
+        
+        comboFlash.textContent = "STAGE " + currentStage + " CLEAR!";
+        comboFlash.style.color = "#6bc5ff";
+        comboFlash.classList.remove("show");
+        void comboFlash.offsetWidth;
+        comboFlash.classList.add("show");
+        
+        beep(1000, 0.15, "square", 0.25);
+        setTimeout(function(){ beep(1500, 0.15, "square", 0.25); }, 120);
+        setTimeout(function(){ beep(2000, 0.3, "square", 0.25); }, 240);
+        
+        currentScrollSpeed = BASE_SCROLL_SPEED + (currentStage - 1) * 0.5;
+        
+        if (currentStage >= 3) unlockAch("survivor");
+        if (currentStage >= 5 && tomHealth >= 100) unlockAch("untouchable");
+        
+        saveGame();
+      }
+      updateStageUI();
+      updateScoreUI();
+    }
+
+    function updateStageUI() {
+      stageNum.textContent = currentStage;
+      levelVal.textContent = currentStage;
+      var pct = Math.min(100, (stageScore / stageTarget) * 100);
+      stageFill.style.width = pct + "%";
+    }
+
+    // ============================================================
+    // VISUAL JUICE
+    // ============================================================
+    var shakeTime = 0;
+    var shakeMagnitude = 0;
+
+    function triggerShake(mag, time) {
+      shakeMagnitude = Math.max(shakeMagnitude, mag);
+      shakeTime = Math.max(shakeTime, time);
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (var i = 0; i < count; i++) {
+        var el = document.createElement("div");
+        el.className = "particle";
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.background = color;
+        el.style.boxShadow = "0 0 8px " + color;
+        board.appendChild(el);
+
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 2 + Math.random() * 5;
+        var vx = Math.cos(angle) * speed;
+        var vy = Math.sin(angle) * speed;
+        var life = 400 + Math.random() * 250;
+        var start = performance.now();
+
+        (function(el, vx, vy, start, life) {
+          function anim(now) {
+            var t = now - start;
+            if (t > life || !el.parentNode) {
+              if (el.parentNode) el.remove();
+              return;
+            }
+            var progress = t / life;
+            var cx = parseFloat(el.style.left) + vx;
+            var cy = parseFloat(el.style.top) + vy + (progress * 8);
+            el.style.left = cx + "px";
+            el.style.top = cy + "px";
+            el.style.opacity = 1 - progress;
+            el.style.transform = "translate(-50%,-50%) scale(" + (1 - progress) + ")";
+            requestAnimationFrame(anim);
+          }
+          requestAnimationFrame(anim);
+        })(el, vx, vy, start, life);
+      }
+    }
+
+    function spawnSmoke(x, y) {
+      var el = document.createElement("div");
+      el.className = "smoke";
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      board.appendChild(el);
+
+      var start = performance.now();
+      var life = 350;
+      (function(el, start, life) {
+        function anim(now) {
+          var t = now - start;
+          if (t > life || !el.parentNode) {
+            if (el.parentNode) el.remove();
+            return;
+          }
+          var progress = t / life;
+          el.style.top = (parseFloat(el.style.top) - 1.5) + "px";
+          el.style.opacity = 0.6 * (1 - progress);
+          el.style.transform = "translate(-50%,-50%) scale(" + (1 + progress) + ")";
+          requestAnimationFrame(anim);
+        }
+        requestAnimationFrame(anim);
+      })(el, start, life);
+    }
+
+    // ============================================================
+    // RANDOM COMBO LOGIC
+    // ============================================================
+    function updateRandomCombo() {
+      var roll = Math.random();
+      var badgeEl = document.createElement("div");
+      badgeEl.className = "badge combo";
+      
+      if (roll < 0.25) {
+        currentComboType = "frenzy";
+        badgeEl.textContent = "🔥 FRENZY";
+        comboFlash.textContent = "FRENZY! Fast Fire!";
+      } else if (roll < 0.50) {
+        currentComboType = "lucky";
+        badgeEl.textContent = "🍀 LUCKY x2";
+        comboFlash.textContent = "LUCKY! Double Points!";
+      } else if (roll < 0.75) {
+        currentComboType = "mega";
+        badgeEl.textContent = "💥 MEGA x3";
+        comboFlash.textContent = "MEGA! Triple Points!";
+      } else {
+        currentComboType = "normal";
+        return;
+      }
+      
+      comboFlash.style.color = "#ff4d4d";
+      comboFlash.classList.remove("show");
+      void comboFlash.offsetWidth;
+      comboFlash.classList.add("show");
+      
+      var oldBadges = statusBadges.querySelectorAll(".badge.combo");
+      for (var i=0; i<oldBadges.length; i++) oldBadges[i].remove();
+      
+      statusBadges.appendChild(badgeEl);
+      comboTypeTimer = 6000;
+      beep(800, 0.1, "square", 0.2);
+      setTimeout(function(){ beep(1000, 0.15, "square", 0.2); }, 100);
+    }
+
+    // ============================================================
+    // SCORE
+    // ============================================================
+    function updateScoreUI() {
+      scoreVal.textContent = totalScore + runScore;
+      coinVal.textContent  = totalCoins + runCoins;
+    }
+
+    function addHitScore() {
+      combo++;
+      runHits++;
+      var points = POINTS_PER_HIT + (combo - 1) * COMBO_BONUS_PER_LEVEL;
+      
+      if (currentComboType === "lucky") points *= 2;
+      if (currentComboType === "mega") points *= 3;
+
+      runScore += points;
+      comboTimer = 0;
+      
+      var coinsEarned = 1;
+      if (eventRemaining > 0) coinsEarned *= 2;
+      runCoins += coinsEarned;
+      
+      addStageProgress(points);
+      updateScoreUI();
+
+      if (runHits === 1) unlockAch("firstBlood");
+      if (combo >= 10) unlockAch("comboMaster");
+      if (runHits >= 50) unlockAch("sharpshooter");
+
+      if (combo >= 2) {
+        var text = "×" + combo + " +" + points;
+        if (currentComboType === "lucky") text += " 🍀";
+        if (currentComboType === "mega") text += " 💥";
+        if (currentComboType === "frenzy") text += " 🔥";
+        
+        comboFlash.textContent = text;
+        comboFlash.classList.remove("show");
+        void comboFlash.offsetWidth;
+        comboFlash.classList.add("show");
+      }
+      showPopup("+" + points, "gold", jerryLane, JERRY_TOP + 50);
+    }
+
+    function breakCombo() {
+      if (combo > 1) {
+        showPopup("COMBO END", "red", tomLane, tomBodyTop() + 30);
+      }
+      combo = 0;
+      comboTimer = 0;
+      updateScoreUI();
+    }
+
+    function checkComboTimeout(dtMs) {
+      if (combo > 0) {
+        comboTimer += dtMs;
+        if (comboTimer > COMBO_TIMEOUT_MS) breakCombo();
+      }
+    }
+
+    function addBonusPoints(amount, label, color) {
+      runScore += amount;
+      addStageProgress(amount);
+      updateScoreUI();
+      showPopup("+" + amount, color || "green", tomLane, tomBodyTop() - 10);
+      if (label) {
+        comboFlash.textContent = label;
+        comboFlash.style.color = "#6bd96b";
+        comboFlash.classList.remove("show");
+        void comboFlash.offsetWidth;
+        comboFlash.classList.add("show");
+      }
+    }
+
+    function saveBest() {
+      if (runScore > best) {
+        best = runScore;
+        try { localStorage.setItem("tjShootBest", best); } catch(e) {}
+        updateScoreUI();
+        return true;
+      }
+      updateScoreUI();
+      return false;
+    }
+
+    function showOverlayScores() {
+      pauseScore.textContent = runScore;
+      pauseCoins.textContent = runCoins;
+      loseScore.textContent  = runScore;
+      loseCoins.textContent  = runCoins;
+      winScore.textContent   = runScore;
+      winCoins.textContent   = runCoins;
+    }
+
+    // ============================================================
+    // LOOK ANIMATION
+    // ============================================================
+    function getLookState(t) {
+      var phase = t % LOOK_CYCLE_MS;
+      if (phase < LOOK_FORWARD_MS) return { amount: 0, concerned: 0 };
+      phase -= LOOK_FORWARD_MS;
+      if (phase < LOOK_ROTATE_MS) {
+        var p = phase / LOOK_ROTATE_MS;
+        var e = p * p * (3 - 2 * p);
+        return { amount: e, concerned: e };
+      }
+      phase -= LOOK_ROTATE_MS;
+      if (phase < LOOK_BACK_MS) return { amount: 1, concerned: 1 };
+      phase -= LOOK_BACK_MS;
+      var p2 = phase / LOOK_ROTATE_MS;
+      var e2 = 1 - (p2 * p2 * (3 - 2 * p2));
+      return { amount: e2, concerned: e2 };
+    }
+
+    function updateJerryLook() {
+      var s = getLookState(lookTimer);
+      jerryHead.style.transform = "rotate(" + (s.amount * 25) + "deg)";
+      var pupilBottom = 3 - s.amount * 3;
+      for (var i = 0; i < jerryPupils.length; i++) {
+        jerryPupils[i].style.bottom = pupilBottom + "px";
+      }
+      jerryMouth.style.width  = (14 - s.concerned * 6) + "px";
+      jerryMouth.style.height = (6 + s.concerned * 4) + "px";
+      jerrySweat.style.opacity = s.concerned;
+    }
+
+    // ============================================================
+    // AIM & POSITIONS
+    // ============================================================
+    function tomBodyTop() {
+      return JERRY_TOP + JERRY_SIZE + CHASE_GAP + bobAmount;
+    }
+
+    function getGunTip(offsetAngle) {
+      var pivotX = tomX_px;
+      var pivotY = tomBodyTop() + 15;
+      var angle = (getAimAngle() + (offsetAngle || 0)) * Math.PI / 180;
+      var dist = (currentWeapon === "rocket") ? 70 : 62;
+      return {
+        x: pivotX + Math.sin(angle) * dist,
+        y: pivotY - Math.cos(angle) * dist,
+        angle: angle
+      };
+    }
+    function getAimAngle() {
+      var pivotX = tomX_px;
+      var pivotY = tomBodyTop() + 15;
+      var jx = laneToPx(jerryLane);
+      var jy = JERRY_TOP + JERRY_SIZE / 2;
+      return Math.atan2(jx - pivotX, -(jy - pivotY)) * 180 / Math.PI;
+    }
+
+    function measureBoard() {
+      var r = board.getBoundingClientRect();
+      boardW = r.width  || 400;
+      boardH = r.height || 600;
+      if (!tomX_px) tomX_px = LANE_X[tomLane] * boardW;
+    }
+    measureBoard();
+    window.addEventListener("resize", function() {
+      measureBoard();
+      setTomPosition();
+      setJerryPosition();
+    });
+
+    function laneToPx(lane) { return LANE_X[lane] * boardW; }
+
+    function setJerryPosition() {
+      jerryEl.style.left = laneToPx(jerryLane) + "px";
+      jerryEl.style.top  = JERRY_TOP + "px";
+    }
+    function setTomPosition() {
+      var bodyTop = tomBodyTop();
+      var containerTop = bodyTop - (TOM_HEIGHT - TOM_SIZE);
+      tomEl.style.left = tomX_px + "px";
+      tomEl.style.top  = containerTop + "px";
+    }
+
+    function updateBars() {
+      jerryFill.style.width = Math.max(0, jerryHealth) + "%";
+      jerryVal.textContent  = Math.round(jerryHealth) + "%";
+      tomFill.style.width   = Math.max(0, tomHealth)   + "%";
+      tomVal.textContent    = Math.round(tomHealth)    + "%";
+    }
+
+    function showPopup(text, colorClass, lane, y) {
+      var el = document.createElement("div");
+      el.className = "popup " + colorClass;
+      el.textContent = text;
+      el.style.left = laneToPx(lane) + "px";
+      el.style.setProperty("--pop-y", y + "px");
+      el.style.top = y + "px";
+      board.appendChild(el);
+      setTimeout(function() { el.remove(); }, 900);
+    }
+
+    function updateAim() {
+      tomArmPivot.style.transform = "rotate(" + getAimAngle() + "deg)";
+    }
+
+    // ============================================================
+    // AUDIO
+    // ============================================================
+    var audioCtx = null;
+    function beep(freq, dur, type, vol) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var o = audioCtx.createOscillator();
+        var g = audioCtx.createGain();
+        o.type = type || "sine";
+        o.frequency.value = freq;
+        g.gain.value = vol || 0.12;
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    // ============================================================
+    // FIRE
+    // ============================================================
+    function fire() {
+      if (!running || paused) return;
+      
+      var actualDmg = BASE_SHOT_DAMAGE + upgDmg;
+      var actualCooldown = BASE_SHOOT_COOLDOWN - (upgSpd * 50);
+      
+      var anglesToFire = [0];
+      var isRocket = false;
+
+      // Character bonuses
+      if (currentChar === "butch") actualDmg += 2;
+      if (currentChar === "lightning") { actualDmg += 2; actualCooldown *= 0.8; }
+      if (currentChar === "topsy") actualCooldown *= 0.75;
+
+      if (currentWeapon === "pistol") {
+        // default
+      } else if (currentWeapon === "shotgun") {
+        anglesToFire = [-15, 0, 15];
+        actualCooldown = 600; // Slower
+      } else if (currentWeapon === "uzi") {
+        anglesToFire = [-3, 3]; // Slight spread
+        actualCooldown = 120; // Very fast
+      } else if (currentWeapon === "rocket") {
+        actualCooldown = 800; // Slow
+        actualDmg *= 2; // Double damage
+        isRocket = true;
+      }
+
+      if (currentComboType === "frenzy") actualCooldown *= 0.4;
+      
+      if (shootCooldown > 0) return;
+      shootCooldown = actualCooldown;
+
+      updateAim();
+      
+      anglesToFire.forEach(function(offsetAngle) {
+        var tip = getGunTip(offsetAngle);
+
+        var flash = document.createElement("div");
+        flash.className = "muzzle";
+        flash.style.left = tip.x + "px";
+        flash.style.top  = tip.y + "px";
+        board.appendChild(flash);
+        setTimeout(function() { flash.remove(); }, 200);
+        
+        spawnSmoke(tip.x, tip.y);
+
+        var speed = isRocket ? 6 : 12;
+        var vx = Math.sin(tip.angle) * speed;
+        var vy = -Math.cos(tip.angle) * speed;
+
+        var el = document.createElement("div");
+        el.className = "bullet" + (isRocket ? " rocket" : "");
+        el.style.left = tip.x + "px";
+        el.style.top  = tip.y + "px";
+        board.appendChild(el);
+
+        bullets.push({ el: el, x: tip.x, y: tip.y, vx: vx, vy: vy, dmg: actualDmg, isRocket: isRocket });
+      });
+
+      // Different sounds per gun
+      if (currentWeapon === "rocket") {
+        beep(300, 0.3, "sawtooth", 0.25);
+      } else if (currentWeapon === "shotgun") {
+        beep(800, 0.15, "square", 0.25);
+        setTimeout(function(){ beep(600, 0.1, "square", 0.2); }, 50);
+      } else if (currentWeapon === "uzi") {
+        beep(1600, 0.03, "square", 0.15);
+      } else {
+        beep(1400, 0.05, "square", 0.18);
+        setTimeout(function(){ beep(900, 0.06, "square", 0.14); }, 40);
+      }
+      
+      triggerShake(currentWeapon === "rocket" ? 6 : 2, 100);
+    }
+
+    // ============================================================
+    // SPAWNING
+    // ============================================================
+    function canSpawnAt(lane, y) {
+      var i;
+      for (i = 0; i < obstacles.length; i++) {
+        var o = obstacles[i];
+        if (o.lane === lane && Math.abs(o.y - y) < MIN_VERTICAL_SPACING) return false;
+      }
+      var blockedNearby = 0;
+      for (i = 0; i < obstacles.length; i++) {
+        var o2 = obstacles[i];
+        if (o2.lane !== lane && Math.abs(o2.y - y) < MIN_CROSS_SPACING) blockedNearby++;
+      }
+      if (blockedNearby >= 2) return false;
+      return true;
+    }
+
+    function spawnObstacle() {
+      var attempts = 0;
+      while (attempts < 12) {
+        var lane = Math.floor(Math.random() * 3);
+        var y = -60 - Math.random() * 40;
+        if (canSpawnAt(lane, y)) {
+          var types = ["trap", "trash", "barrier"];
+          var type = types[Math.floor(Math.random() * 3)];
+          var el = document.createElement("div");
+          el.className = "obstacle " + type;
+          el.style.left = laneToPx(lane) + "px";
+          el.style.top = y + "px";
+          el.textContent = type === "trap" ? "🪤" : type === "trash" ? "🗑️" : "🚧";
+          board.appendChild(el);
+          obstacles.push({ lane: lane, y: y, el: el, type: type });
+          return;
+        }
+        attempts++;
+      }
+    }
+
+    function spawnRandomPickup() {
+      var roll = Math.random();
+      var type, label;
+
+      if (roll < 0.10) {
+        type = "coin"; label = "🪙";
+      } else if (roll < 0.18) {
+        type = "gold-cheese"; label = "🧀✨";
+      } else if (roll < 0.35) {
+        type = "cheese"; label = "🧀";
+      } else if (roll < 0.50) {
+        type = "slow"; label = "⏱️";
+      } else if (roll < 0.65) {
+        type = "invincible"; label = "⭐";
+      } else if (roll < 0.80) {
+        type = "bonus"; label = "+" + BONUS_POINTS[Math.floor(Math.random() * BONUS_POINTS.length)];
+      } else if (roll < 0.92) {
+        type = "chest-wood"; label = "📦";
+      } else {
+        type = "chest-gold"; label = "🎁";
+      }
+
+      var lane = Math.floor(Math.random() * 3);
+      for (var i = 0; i < obstacles.length; i++) {
+        var o = obstacles[i];
+        if (o.lane === lane && o.y > -150 && o.y < 80) return;
+      }
+
+      var el = document.createElement("div");
+      el.className = "pickup " + type;
+      el.textContent = label;
+      el.style.left = laneToPx(lane) + "px";
+      el.style.top = "-50px";
+      board.appendChild(el);
+
+      pickups.push({
+        el: el,
+        lane: lane,
+        y: -50,
+        type: type,
+        points: (type === "bonus" ? parseInt(label.replace("+", ""), 10) : 0)
+      });
+    }
+
+    function clearBoard() {
+      var i;
+      for (i = 0; i < obstacles.length; i++)    obstacles[i].el.remove();
+      for (i = 0; i < collectibles.length; i++) collectibles[i].el.remove();
+      for (i = 0; i < pickups.length; i++)      pickups[i].el.remove();
+      for (i = 0; i < bullets.length; i++)      bullets[i].el.remove();
+      obstacles = []; collectibles = []; pickups = []; bullets = [];
+    }
+
+    function applyPickup(p) {
+      switch (p.type) {
+        case "coin":
+          var cAmt = 5;
+          if (eventRemaining > 0) cAmt *= 2;
+          runCoins += cAmt;
+          updateScoreUI();
+          showPopup("+" + cAmt + " 🪙", "gold", tomLane, tomBodyTop() - 30);
+          beep(1200, 0.1, "sine", 0.2);
+          break;
+        case "cheese":
+          addBonusPoints(CHEESE_POINTS, "CHEESE +" + CHEESE_POINTS, "gold");
+          beep(1500, 0.15, "square", 0.2);
+          setTimeout(function(){ beep(2000, 0.15, "square", 0.18); }, 80);
+          break;
+        case "gold-cheese":
+          addBonusPoints(GOLD_CHEESE_POINTS, "GOLD! +" + GOLD_CHEESE_POINTS, "gold");
+          beep(1800, 0.15, "square", 0.22);
+          setTimeout(function(){ beep(2400, 0.15, "square", 0.2); }, 80);
+          setTimeout(function(){ beep(3000, 0.2, "square", 0.2); }, 160);
+          break;
+        case "slow":
+          slowRemaining = SLOW_DURATION;
+          slowTint.classList.add("on");
+          showPopup("SLOW-MO!", "blue", tomLane, tomBodyTop() - 30);
+          beep(400, 0.3, "sine", 0.2);
+          break;
+        case "invincible":
+          invRemaining = INVINCIBLE_DURATION;
+          invTint.classList.add("on");
+          showPopup("INVINCIBLE!", "gold", tomLane, tomBodyTop() - 30);
+          beep(800, 0.2, "square", 0.2);
+          setTimeout(function(){ beep(1200, 0.2, "square", 0.2); }, 100);
+          break;
+        case "bonus":
+          addBonusPoints(p.points, "+" + p.points, "green");
+          beep(1200, 0.1, "square", 0.18);
+          break;
+        case "chest-wood":
+          runChests++;
+          checkMissionProgress("chests", 1);
+          if (runChests >= 5) unlockAch("treasure");
+          
+          var r1 = Math.random();
+          spawnParticles(laneToPx(p.lane), p.y, "#a0522d", 15);
+          if (r1 < 0.33) {
+            addBonusPoints(50, "WOODEN CHEST +50", "gold");
+          } else if (r1 < 0.66) {
+            runCoins += 10; updateScoreUI();
+            showPopup("+10 🪙", "gold", p.lane, p.y);
+          } else {
+            tomHealth += 15; if(tomHealth>100)tomHealth=100; updateBars();
+            showPopup("+15% HP", "blue", p.lane, p.y);
+          }
+          beep(900, 0.1, "square", 0.2);
+          setTimeout(function(){ beep(1100, 0.15, "square", 0.2); }, 100);
+          break;
+        case "chest-gold":
+          runChests++;
+          checkMissionProgress("chests", 1);
+          if (runChests >= 5) unlockAch("treasure");
+
+          spawnParticles(laneToPx(p.lane), p.y, "#ffd166", 25);
+          triggerShake(8, 300);
+          var r2 = Math.random();
+          if (r2 < 0.33) {
+            triggerCoinEvent();
+          } else if (r2 < 0.66) {
+            tomHealth = 100; updateBars();
+            showPopup("FULL HEAL!", "blue", p.lane, p.y);
+          } else {
+            updateRandomCombo();
+          }
+          beep(1500, 0.15, "square", 0.25);
+          setTimeout(function(){ beep(2000, 0.15, "square", 0.25); }, 120);
+          setTimeout(function(){ beep(2500, 0.25, "square", 0.25); }, 240);
+          break;
+      }
+      updateStatusBadges();
+    }
+
+    function updateStatusBadges() {
+      var badges = statusBadges.querySelectorAll(".badge:not(.combo):not(.coin2x):not(.tool)");
+      for (var i=0; i<badges.length; i++) badges[i].remove();
+      
+      if (eventRemaining > 0) {
+        var b0 = statusBadges.querySelector(".badge.coin2x");
+        if (!b0) {
+          b0 = document.createElement("div");
+          b0.className = "badge coin2x";
+          statusBadges.appendChild(b0);
+        }
+        b0.textContent = "🪙×2 " + Math.ceil(eventRemaining / 1000) + "s";
+      } else {
+        var bOld = statusBadges.querySelector(".badge.coin2x");
+        if (bOld) bOld.remove();
+      }
+
+      if (slowRemaining > 0) {
+        var b1 = document.createElement("div");
+        b1.className = "badge slow";
+        b1.textContent = "⏱️ " + Math.ceil(slowRemaining / 1000) + "s";
+        statusBadges.appendChild(b1);
+      }
+      if (invRemaining > 0) {
+        var b2 = document.createElement("div");
+        b2.className = "badge inv";
+        b2.textContent = "⭐ " + Math.ceil(invRemaining / 1000) + "s";
+        statusBadges.appendChild(b2);
+      }
+      
+      // Tools
+      var oldTools = statusBadges.querySelectorAll(".badge.tool");
+      for (var j=0; j<oldTools.length; j++) oldTools[j].remove();
+      
+      if (toolMagnetActive) {
+        var t3 = document.createElement("div"); t3.className = "badge tool"; t3.textContent = "🧲 Magnet"; statusBadges.appendChild(t3);
+      }
+      if (toolTimeWarpActive) {
+        var t4 = document.createElement("div"); t4.className = "badge tool"; t4.textContent = "⏳ TimeWarp"; statusBadges.appendChild(t4);
+      }
+      if (toolRepulsorActive) {
+        var t5 = document.createElement("div"); t5.className = "badge tool"; t5.textContent = "🚀 Repulsor"; statusBadges.appendChild(t5);
+      }
+    }
+
+    // ============================================================
+    // START
+    // ============================================================
+    function startGame(isContinue) {
+      measureBoard();
+      tomLane = 1;
+      jerryLane = 1;
+      tomX_px = laneToPx(tomLane);
+      bobAmount = 0;
+      spawnTimer = 0; aiTimer = 0; bobTimer = 0;
+      lookTimer = 0;
+      shootCooldown = 0;
+      pickupTimer = 0;
+      slowRemaining = 0;
+      invRemaining = 0;
+      timeScale = 1;
+      timeWarpTriggered = false;
+      slowTint.classList.remove("on");
+      invTint.classList.remove("on");
+      statusBadges.innerHTML = "";
+      
+      backBtn.style.display = "block";
+
+      // Set Character Variables
+      var startHp = BASE_TOM_START + (upgHp * 15);
+      var c1 = "#a8cce8", c2 = "#8fb8e0", c3 = "#5a8cb8";
+      var charName = "🐱 Tom";
+
+      if (currentChar === "butch") { startHp = 55 + (upgHp*15); c1 = "#888"; c2 = "#444"; c3 = "#222"; charName = "😼 Butch"; }
+      if (currentChar === "topsy") { startHp = 25 + (upgHp*15); c1 = "#c48a69"; c2 = "#a05a39"; c3 = "#68321b"; charName = "😾 Topsy"; }
+      if (currentChar === "lightning") { startHp = 100; c1 = "#ffd166"; c2 = "#ff8a4a"; c3 = "#d94a1a"; charName = "⚡ Lightning"; }
+
+      tomEl.style.setProperty('--char-color-1', c1);
+      tomEl.style.setProperty('--char-color-2', c2);
+      tomEl.style.setProperty('--char-color-3', c3);
+      tomNameLabel.textContent = charName;
+
+      if (!isContinue) {
+        jerryHealth = JERRY_START;
+        tomHealth   = startHp;
+        
+        runHits = 0;
+        runSmash = 0;
+        runChests = 0;
+
+        runScore = 0;
+        runCoins = 0;
+        
+        currentStage = 1;
+        stageScore = 0;
+        stageTarget = 300;
+        currentScrollSpeed = BASE_SCROLL_SPEED;
+        
+        combo = 0;
+        comboTimer = 0;
+        currentComboType = "normal";
+        comboTypeTimer = 0;
+        
+        if (upgLuck || currentChar === "lightning") {
+          updateRandomCombo();
+        }
+        
+        eventTimer = 15000; // Reset 2x event timer to 15s
+        eventRemaining = 0;
+        coinVal.classList.remove("active2x");
+
+        rollMission();
+      } else {
+        currentScrollSpeed = BASE_SCROLL_SPEED + (currentStage - 1) * 0.5;
+      }
+      
+      updateStageUI();
+
+      // Apply Weapon Visual
+      var gunEl = tomArmPivot.querySelector(".gun");
+      var gunUzi2 = tomArmPivot.querySelector(".gun.uzi2");
+      
+      if (gunUzi2) gunUzi2.remove();
+      
+      gunEl.className = "gun";
+      if (currentWeapon === "shotgun") gunEl.classList.add("shotgun");
+      if (currentWeapon === "rocket") gunEl.classList.add("rocket");
+      
+      if (currentWeapon === "uzi") {
+        gunEl.classList.add("uzi");
+        var u2 = document.createElement("div");
+        u2.className = "gun uzi2";
+        tomArmPivot.appendChild(u2);
+      }
+
+      updateScoreUI();
+      updateStatusBadges();
+      clearBoard();
+
+      startScreen.classList.add("hidden");
+      pauseScreen.classList.add("hidden");
+      loseScreen.classList.add("hidden");
+      catchScreen.classList.add("hidden");
+      continueBtn.classList.add("hidden");
+
+      setJerryPosition();
+      setTomPosition();
+      updateAim();
+      updateJerryLook();
+      updateBars();
+
+      running = true; paused = false;
+      lastFrame = performance.now();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ============================================================
+    // MAIN LOOP
+    // ============================================================
+    function gameLoop(now) {
+      if (!running || paused) return;
+      var rawDtMs = Math.min(now - lastFrame, 50);
+      lastFrame = now;
+
+      var dtMs = rawDtMs * timeScale;
+      var dt = dtMs / 16.67;
+      var moveSpeed = currentScrollSpeed * dt;
+
+      updateEvent(rawDtMs);
+
+      // --- SCREEN SHAKE ---
+      if (shakeTime > 0) {
+        shakeTime -= rawDtMs;
+        var sx = (Math.random() - 0.5) * shakeMagnitude * 2;
+        var sy = (Math.random() - 0.5) * shakeMagnitude * 2;
+        var scale = zoomScales[camZoomLevel];
+        board.style.transform = "translate(" + sx + "px, " + sy + "px) scale(" + scale + ")";
+        if (shakeTime <= 0) {
+          shakeMagnitude = 0;
+          board.style.transform = "translate(0, 0) scale(" + scale + ")";
+        }
+      }
+
+      // --- JERRY'S RUN CYCLE ---
+      var runCycle = Math.sin(now / 80);
+      jerryBounce.style.transform = "translateY(" + (runCycle * 3) + "px)";
+      jerryTail.style.transform = "rotate(" + (20 + runCycle * 15) + "deg)";
+
+      var targetX = laneToPx(tomLane);
+      var dx = targetX - tomX_px;
+      tomX_px += dx * 0.22;
+      if (Math.abs(dx) < 1) tomX_px = targetX;
+
+      aiTimer += dt;
+      if (aiTimer > 60 + Math.random() * 60) {
+        var newLane = Math.floor(Math.random() * 3);
+        if (newLane !== jerryLane) {
+          jerryLane = newLane;
+          setJerryPosition();
+        }
+        aiTimer = 0;
+      }
+
+      bobTimer += dtMs;
+      bobAmount = Math.sin(bobTimer / 150) * 4;
+
+      lookTimer += dtMs;
+      updateJerryLook();
+
+      checkComboTimeout(rawDtMs);
+
+      // Time Warp Tool Check
+      if (toolTimeWarpActive && jerryHealth <= 30 && jerryHealth > 0 && !timeWarpTriggered) {
+        timeWarpTriggered = true;
+        slowRemaining = 2000;
+        slowTint.classList.add("on");
+        showPopup("TIME WARP!", "blue", tomLane, tomBodyTop() - 30);
+        beep(400, 0.3, "sine", 0.25);
+        updateStatusBadges();
+      }
+
+      // Random Combo Timer
+      if (comboTypeTimer > 0) {
+        comboTypeTimer -= rawDtMs;
+        if (comboTypeTimer <= 0) {
+          currentComboType = "normal";
+          var oldBadges = statusBadges.querySelectorAll(".badge.combo");
+          for (var cb=0; cb<oldBadges.length; cb++) oldBadges[cb].remove();
+        }
+      } else {
+        if (Math.random() < 0.002 && running && currentChar !== "lightning") {
+          updateRandomCombo();
+        }
+      }
+
+      updateAim();
+
+      if (slowRemaining > 0) {
+        slowRemaining -= rawDtMs;
+        if (slowRemaining <= 0) {
+          slowRemaining = 0;
+          slowTint.classList.remove("on");
+          updateStatusBadges();
+        } else {
+          if (Math.floor(slowRemaining / 250) !== Math.floor((slowRemaining + rawDtMs) / 250)) {
+            updateStatusBadges();
+          }
+        }
+      }
+      if (invRemaining > 0) {
+        invRemaining -= rawDtMs;
+        if (invRemaining <= 0) {
+          invRemaining = 0;
+          invTint.classList.remove("on");
+          updateStatusBadges();
+        } else {
+          if (Math.floor(invRemaining / 250) !== Math.floor((invRemaining + rawDtMs) / 250)) {
+            updateStatusBadges();
+          }
+        }
+      }
+      timeScale = (slowRemaining > 0) ? 0.5 : 1;
+
+      var i, j, b, o, c, bl, p;
+      
+      var tomCenterX = tomX_px;
+      var tomCenterY = tomBodyTop() + TOM_SIZE / 2;
+
+      for (i = obstacles.length - 1; i >= 0; i--) {
+        o = obstacles[i];
+        o.y += moveSpeed;
+        o.el.style.top = o.y + "px";
+        if (o.y > boardH + 60) { o.el.remove(); obstacles.splice(i, 1); }
+      }
+      for (j = collectibles.length - 1; j >= 0; j--) {
+        c = collectibles[j];
+        c.y += moveSpeed;
+        c.el.style.top = c.y + "px";
+        if (c.y > boardH + 60) { c.el.remove(); collectibles.splice(j, 1); }
+      }
+      for (p = pickups.length - 1; p >= 0; p--) {
+        var pk = pickups[p];
+        
+        // Magnet Tool Check
+        if (toolMagnetActive) {
+          var dist = Math.hypot(tomCenterX - laneToPx(pk.lane), tomCenterY - pk.y);
+          if (dist < 250) {
+            var pullX = (tomCenterX - laneToPx(pk.lane)) * 0.15;
+            var pullY = (tomCenterY - pk.y) * 0.15;
+            pk.lane = (laneToPx(pk.lane) + pullX) / boardW;
+            if (Math.abs(pk.lane - Math.round(pk.lane)) < 0.1) pk.lane = Math.round(pk.lane);
+            pk.y += pullY;
+          }
+        }
+
+        pk.y += moveSpeed;
+        pk.el.style.left = laneToPx(pk.lane) + "px";
+        pk.el.style.top = pk.y + "px";
+        if (pk.y > boardH + 60) { pk.el.remove(); pickups.splice(p, 1); }
+      }
+
+      var jerryCX = laneToPx(jerryLane);
+      var jerryCY = JERRY_TOP + JERRY_SIZE / 2;
+      var jerryR = 35;
+      
+      for (b = bullets.length - 1; b >= 0; b--) {
+        bl = bullets[b];
+        bl.x += bl.vx * dt;
+        bl.y += bl.vy * dt;
+        bl.el.style.left = bl.x + "px";
+        bl.el.style.top  = bl.y + "px";
+
+        var ddx = bl.x - jerryCX;
+        var ddy = bl.y - jerryCY;
+        
+        if (ddx*ddx + ddy*ddy < jerryR*jerryR) {
+          jerryHealth -= bl.dmg;
+          if (jerryHealth < 0) jerryHealth = 0;
+          tomHealth += TOM_LIFE_GAIN;
+          if (tomHealth > 100) tomHealth = 100;
+          showPopup("-" + bl.dmg + "%", "red",  jerryLane, JERRY_TOP + 20);
+          showPopup("+" + TOM_LIFE_GAIN + "%", "blue", tomLane,  tomBodyTop() + 20);
+          updateBars();
+          addHitScore();
+          checkMissionProgress("hits", 1);
+          
+          spawnParticles(bl.x, bl.y, bl.isRocket ? "#ff6b35" : "#ffd166", bl.isRocket ? 15 : 6);
+          triggerShake(bl.isRocket ? 10 : 4, 150);
+          
+          beep(600, 0.1, "sawtooth", 0.18);
+          bl.el.remove(); bullets.splice(b, 1);
+          continue;
+        }
+        if (bl.x < -40 || bl.x > boardW + 40 || bl.y < -40 || bl.y > boardH + 40) {
+          bl.el.remove(); bullets.splice(b, 1);
+        }
+      }
+
+      spawnTimer += moveSpeed;
+      if (spawnTimer > 280) { spawnObstacle(); spawnTimer = 0; }
+
+      pickupTimer += rawDtMs;
+      if (pickupTimer > PICKUP_SPAWN_INTERVAL) {
+        spawnRandomPickup();
+        pickupTimer = 0;
+      }
+
+      setTomPosition();
+
+      if (shootCooldown > 0) shootCooldown -= rawDtMs;
+
+      checkCollisions();
+
+      if (jerryHealth <= 0) { winGame(); return; }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ============================================================
+    // COLLISIONS
+    // ============================================================
+    function checkCollisions() {
+      var i, c, o, p;
+      var tomBodyCenterY = tomBodyTop() + TOM_SIZE / 2;
+
+      for (i = collectibles.length - 1; i >= 0; i--) {
+        c = collectibles[i];
+        if (c.lane === tomLane && Math.abs(c.y - tomBodyCenterY) < 45) {
+          c.el.remove(); collectibles.splice(i, 1);
+          beep(1000, 0.1, "square", 0.15);
+        }
+      }
+
+      for (p = pickups.length - 1; p >= 0; p--) {
+        var pk = pickups[p];
+        if (Math.abs(pk.lane - tomLane) < 0.5 && Math.abs(pk.y - tomBodyCenterY) < 45) {
+          var type = pk.type;
+          var points = pk.points;
+          pk.el.remove(); pickups.splice(p, 1);
+          applyPickup({ type: type, points: points, lane: tomLane, y: tomBodyCenterY });
+          checkMissionProgress("pickups", 1);
+        }
+      }
+
+      for (i = obstacles.length - 1; i >= 0; i--) {
+        o = obstacles[i];
+        if (o.lane === tomLane && Math.abs(o.y - tomBodyCenterY) < 45) {
+          
+          // Repulsor Tool Check
+          var isRepulsable = (o.type === "trash" || o.type === "barrier");
+          if (invRemaining > 0 || (toolRepulsorActive && isRepulsable)) {
+            runSmash++;
+            if (runSmash >= 10) unlockAch("bruiser");
+            
+            spawnParticles(o.el.offsetLeft, o.y, "#ff6b35", 12);
+            triggerShake(6, 200);
+            o.el.remove(); obstacles.splice(i, 1);
+            addBonusPoints(20, "SMASH!", "gold");
+            checkMissionProgress("smash", 1);
+            beep(300, 0.15, "sawtooth", 0.25);
+            beep(600, 0.1, "square", 0.2);
+            continue;
+          }
+          
+          spawnParticles(o.el.offsetLeft, o.y, "#c0392b", 20);
+          triggerShake(15, 500);
+          faintFail();
+          return;
+        }
+      }
+    }
+
+    function winGame() {
+      running = false;
+      backBtn.style.display = "none";
+      clearSave(); // Delete save file on finish
+      beep(800, 0.15, "square", 0.2);
+      setTimeout(function(){ beep(1200, 0.2, "square", 0.2); }, 120);
+
+      saveBest();
+      totalScore += runScore;
+      totalCoins += runCoins;
+      saveMeta();
+      updateShopUI();
+      
+      showOverlayScores();
+      catchScreen.classList.remove("hidden");
+    }
+
+    function faintFail() {
+      running = false;
+      backBtn.style.display = "none";
+      clearSave(); // Delete save file on death
+      beep(150, 0.6, "sawtooth", 0.25);
+      loseMsg.textContent = "You hit an obstacle!";
+      
+      saveBest();
+      totalScore += runScore;
+      totalCoins += runCoins;
+      saveMeta();
+      updateShopUI();
+      
+      showOverlayScores();
+      
+      setTimeout(function(){
+        var scale = zoomScales[camZoomLevel];
+        board.style.transform = "translate(0, 0) scale(" + scale + ")";
+        loseScreen.classList.remove("hidden");
+      }, 400);
+    }
+
+    function togglePause() {
+      if (!running) return;
+      paused = !paused;
+      if (paused) {
+        showOverlayScores();
+        pauseScreen.classList.remove("hidden");
+      } else {
+        pauseScreen.classList.add("hidden");
+        lastFrame = performance.now();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function moveLeft()  { if (tomLane > 0) { tomLane--; beep(500, 0.05, "square", 0.1); } }
+    function moveRight() { if (tomLane < 2) { tomLane++; beep(500, 0.05, "square", 0.1); } }
+
+    // ============================================================
+    // INPUT
+    // ============================================================
+    document.addEventListener("keydown", function(e) {
+      if (e.key === " " && !running) { e.preventDefault(); startGame(false); return; }
+      if ((e.key === "p" || e.key === "P") && running) { togglePause(); return; }
+      if (!running || paused) return;
+      if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") { e.preventDefault(); moveLeft(); }
+      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); moveRight(); }
+      if (e.key === " " || e.key === "f" || e.key === "F" || e.key === "ArrowUp") {
+        e.preventDefault();
+        fire();
+      }
+    });
+
+    var tStartX = 0, tStartY = 0, tStartT = 0;
+    var SWIPE_MIN = 30, TAP_MAX = 220, TAP_DIST = 18;
+
+    board.addEventListener("touchstart", function(e) {
+      if (!running || paused) return;
+      var t = e.touches[0];
+      tStartX = t.clientX;
+      tStartY = t.clientY;
+      tStartT = Date.now();
+      e.preventDefault();
+    }, { passive: false });
+
+    board.addEventListener("touchend", function(e) {
+      if (!running || paused) return;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - tStartX;
+      var dy = t.clientY - tStartY;
+      var elapsed = Date.now() - tStartT;
+      var adx = Math.abs(dx);
+      var ady = Math.abs(dy);
+
+      if (adx < TAP_DIST && ady < TAP_DIST && elapsed < TAP_MAX) {
+        fire();
+        return;
+      }
+      if (adx > SWIPE_MIN && adx > ady) {
+        if (dx < 0) moveLeft(); else moveRight();
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    board.addEventListener("touchmove", function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    document.getElementById("healthPanel").addEventListener("touchstart", function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    document.getElementById("startBtn").addEventListener("click", function() { startGame(false); });
+    document.getElementById("resumeBtn").addEventListener("click", togglePause);
+    document.getElementById("restartBtn1").addEventListener("click", function() {
+      running = false;
+      paused = false;
+      pauseScreen.classList.add("hidden");
+      loseScreen.classList.add("hidden");
+      catchScreen.classList.add("hidden");
+      startScreen.classList.remove("hidden");
+      clearBoard();
+      clearSave(); 
+      checkSave();
+      backBtn.style.display = "none";
+    });
+    document.getElementById("tryAgainBtn").addEventListener("click", function() {
+      startScreen.classList.remove("hidden");
+      loseScreen.classList.add("hidden");
+    });
+    document.getElementById("nextChaseBtn").addEventListener("click", function() {
+      startScreen.classList.remove("hidden");
+      catchScreen.classList.add("hidden");
+    });
+
+    // ---- INIT ----
+    setJerryPosition();
+    setTomPosition();
+    updateAim();
+    updateJerryLook();
+    updateBars();
+    updateShopUI();
+    updateAchUI();
+    updateStageUI();
+    setTimeout(function(){ measureBoard(); setJerryPosition(); setTomPosition(); }, 100);
+
+  } catch (err) {
+    showError("FATAL: " + err.message);
+  }
+})();
+</script>
+</body>
+</html>
